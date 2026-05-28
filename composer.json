@@ -1,0 +1,36 @@
+{
+    "name": "palerm0/librenms-config-compliance",
+    "version": "1.9.3",
+    "description": "Config compliance checks for LibreNMS, based on Oxidized backups",
+    "keywords": [
+        "librenms",
+        "plugin",
+        "compliance",
+        "oxidized"
+    ],
+    "type": "library",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Palerm0"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Palerm0\\LibrenmsConfigCompliance\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "librenms/plugin-interfaces": "^1.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Palerm0\\LibrenmsConfigCompliance\\ConfigComplianceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

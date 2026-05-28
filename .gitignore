@@ -1,0 +1,14 @@
+# Composer
+/vendor/
+composer.lock
+
+# Runtime data the plugin writes (should never be committed)
+storage/app/config-compliance/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
