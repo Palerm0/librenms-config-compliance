@@ -3,6 +3,11 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.9.6
+- Install instructions in the README updated to `lnms plugin:add` as the
+  official, recommended method; the older `composer require` recipe is now
+  documented as the contributors / local-development path only.
+
 ## v1.9.5
 - Plugin is now installable via the official `lnms plugin:add` command
   (published on Packagist). Removed the version field from composer.json

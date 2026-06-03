@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.9.5** &middot; License: **GPL-3.0-or-later**
+Version: **v1.9.6** &middot; License: **GPL-3.0-or-later**
 
 ---
 
@@ -22,27 +22,22 @@ Version: **v1.9.5** &middot; License: **GPL-3.0-or-later**
 
 ## Installation
 
-The plugin is installed as a Composer package. Publishing on Packagist is not
-needed &mdash; you link the folder locally.
+The recommended way is `lnms plugin:add`, which installs the plugin from
+[Packagist](https://packagist.org/packages/palerm0/librenms-config-compliance)
+without touching LibreNMS' own dependencies. Run as the `librenms` user:
 
-1. Place the `librenms-config-compliance` folder somewhere on the server, for
-   example in `/opt/librenms/plugins-src/librenms-config-compliance`.
+```bash
+sudo -u librenms /opt/librenms/lnms plugin:add palerm0/librenms-config-compliance
+```
 
-2. As the `librenms` user, run the following in the LibreNMS folder:
+Then enable it from the LibreNMS web UI under **Overview &raquo; Plugins**, or
+from the command line:
 
-   ```bash
-   cd /opt/librenms
+```bash
+sudo -u librenms /opt/librenms/lnms plugin:enable config-compliance
+```
 
-   composer config repositories.config-compliance \
-     '{"type": "path", "url": "plugins-src/librenms-config-compliance", "symlink": true}'
-
-   composer require palerm0/librenms-config-compliance
-   ```
-
-3. In LibreNMS go to **Overview &raquo; Plugins** and set
-   *Config Compliance* to **enabled**.
-
-4. A menu item **Config Compliance** now appears under the plugin menu.
+A menu item **Config Compliance** now appears under the plugin menu.
 
 ## Configuration
 
@@ -119,9 +114,32 @@ config, and gets an extra grey **Down** label next to its status.
 
 ## LibreNMS updates
 
-`./daily.sh` can overwrite the plugin link via Composer. Add the two
-`composer` commands from step 2 to your `post-update.sh`, so the plugin is
-automatically re-linked after a LibreNMS update.
+Because `lnms plugin:add` registers the plugin through LibreNMS' own plugin
+machinery, you do **not** need any custom steps after `./daily.sh` &mdash;
+the plugin stays linked across LibreNMS updates.
+
+## For contributors / local development
+
+If you want to run the plugin from a local clone (to develop or hack on it
+rather than installing from Packagist), link the folder directly:
+
+```bash
+git clone https://github.com/Palerm0/librenms-config-compliance \
+  /opt/librenms/plugins-src/librenms-config-compliance
+
+cd /opt/librenms
+
+composer config repositories.config-compliance \
+  '{"type": "path", "url": "plugins-src/librenms-config-compliance", "symlink": true}'
+
+composer require palerm0/librenms-config-compliance @dev
+```
+
+With the symlink in place you can edit the files in `plugins-src` and the
+changes take effect immediately (run `./lnms view:clear` after Blade edits).
+
+When using this path the local link can be reset by `./daily.sh`; in that
+case re-run the two `composer` commands above (e.g. from a `post-update.sh`).
 
 ## Files
 
