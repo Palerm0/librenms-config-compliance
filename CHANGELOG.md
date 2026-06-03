@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.9.5
+- Plugin is now installable via the official `lnms plugin:add` command
+  (published on Packagist). Removed the version field from composer.json
+  in favour of git tags as the source of truth; the in-app version now
+  comes from a single constant in the engine.
+- Multi-pattern text fields ("Contains any of" / "Contains none of") grow
+  with their content instead of staying at three rows.
+
 ## v1.9.x
 - Compliance score in the scan bar: percentage of evaluated devices that are
   compliant, with a colour indicator (green / orange / red). Devices with no

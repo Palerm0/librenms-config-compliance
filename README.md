@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.9.3** &middot; License: **GPL-3.0-or-later**
+Version: **v1.9.5** &middot; License: **GPL-3.0-or-later**
 
 ---
 

@@ -298,22 +298,14 @@ class ComplianceEngine
     }
 
     /**
-     * Het versienummer van de plugin, gelezen uit composer.json.
-     * Zo is er maar één plek waar de versie staat.
+     * Versienummer van de plugin. Eén plek om te updaten bij een release;
+     * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
+    public const VERSION = '1.9.5';
+
     public function version(): string
     {
-        $file = __DIR__ . '/../composer.json';
-
-        if (is_file($file)) {
-            $data = json_decode((string) file_get_contents($file), true);
-
-            if (is_array($data) && ! empty($data['version'])) {
-                return (string) $data['version'];
-            }
-        }
-
-        return 'onbekend';
+        return self::VERSION;
     }
 
     /* ---------- Resultaten ---------- */

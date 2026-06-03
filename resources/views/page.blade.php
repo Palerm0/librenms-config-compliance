@@ -517,10 +517,12 @@
             let patternCell;
             if (isMultiType(check.type)) {
                 // Meerregelig: één patroon per regel; slaagt op één match (any)
-                // of faalt op één match (none).
+                // of faalt op één match (none). Het vak groeit mee met de
+                // hoeveelheid regels (zie autoGrow hieronder).
                 patternCell =
-                    '<textarea class="form-control input-sm" rows="3"' +
+                    '<textarea class="form-control input-sm cc-grow" rows="2"' +
                     ' placeholder="One pattern per line — any of these"' +
+                    ' oninput="autoGrow(this)"' +
                     ' onchange="' + assign + '">' + escapeHtml(check.pattern) + '</textarea>';
             } else {
                 patternCell =
@@ -766,6 +768,16 @@
                     '<div class="tooltip-inner"></div></div>'
             });
         }
+
+        // Meerregelige patroon-vakken laten groeien op basis van hun inhoud.
+        document.querySelectorAll('#rules-container textarea.cc-grow').forEach(autoGrow);
+    }
+
+    // Past de hoogte van een textarea aan op z'n inhoud, zodat alle ingevoerde
+    // patronen zichtbaar zijn zonder dat je in het vak hoeft te scrollen.
+    function autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight + 2) + 'px';
     }
 
     function addRule() {

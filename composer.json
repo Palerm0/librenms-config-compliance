@@ -1,6 +1,5 @@
 {
     "name": "palerm0/librenms-config-compliance",
-    "version": "1.9.3",
     "description": "Config compliance checks for LibreNMS, based on Oxidized backups",
     "keywords": [
         "librenms",
