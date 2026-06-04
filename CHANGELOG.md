@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.9.7
+- Added an **Updating** section to the README so users know that
+  `lnms plugin:add` is idempotent and is also the right command to pick up
+  a new release from Packagist.
+- Added a Troubleshooting note to the README: clear the Laravel caches with
+  `php artisan cache:clear / view:clear / route:clear` if the web UI returns
+  a 500 after enabling the plugin. Thanks to @RR1 on the LibreNMS forum for
+  reporting this.
+
 ## v1.9.6
 - Install instructions in the README updated to `lnms plugin:add` as the
   official, recommended method; the older `composer require` recipe is now

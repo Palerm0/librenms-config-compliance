@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.9.6** &middot; License: **GPL-3.0-or-later**
+Version: **v1.9.7** &middot; License: **GPL-3.0-or-later**
 
 ---
 
@@ -38,6 +38,34 @@ sudo -u librenms /opt/librenms/lnms plugin:enable config-compliance
 ```
 
 A menu item **Config Compliance** now appears under the plugin menu.
+
+### Updating
+
+When a new version is released on Packagist, run the same command again to
+pick it up:
+
+```bash
+sudo -u librenms /opt/librenms/lnms plugin:add palerm0/librenms-config-compliance
+sudo -u librenms /opt/librenms/lnms view:clear
+```
+
+`plugin:add` is idempotent — if the latest version is already installed it
+does nothing, otherwise it fetches the new release from Packagist.
+
+### Troubleshooting
+
+**Web UI crashes (500) after enabling the plugin** &mdash; some LibreNMS
+installations keep stale cached routes or views from before the plugin was
+added. Clearing them solves it:
+
+```bash
+cd /opt/librenms
+sudo -u librenms php artisan cache:clear
+sudo -u librenms php artisan view:clear
+sudo -u librenms php artisan route:clear
+```
+
+Then reload the page.
 
 ## Configuration
 
