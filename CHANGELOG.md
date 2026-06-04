@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.10.4
+- **Bugfix**: the Settings button on the LibreNMS plugin admin page showed
+  "Missing view." The plugin now implements the official SettingsHook with a
+  proper settings form (Oxidized URL), following the upstream example plugin.
+  Views are loaded even when the plugin is disabled, so the settings page
+  renders a friendly message instead of an error in that state.
+
+## v1.10.3
+- Added a step-by-step **Getting started guide** (docs/getting-started.md):
+  from zero to a first compliance alert, including a table of example rules
+  and an explanation of all check types. Linked from the README.
+
 ## v1.10.2
 - README: two practical alerting tips (attach a transport to the rule for
   notifications; consider Warning severity for compliance drift).

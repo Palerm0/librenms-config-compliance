@@ -17,9 +17,11 @@ namespace Palerm0\LibrenmsConfigCompliance;
 
 use Illuminate\Support\ServiceProvider;
 use LibreNMS\Interfaces\Plugins\Hooks\MenuEntryHook;
+use LibreNMS\Interfaces\Plugins\Hooks\SettingsHook;
 use LibreNMS\Interfaces\Plugins\PluginManagerInterface;
 use Palerm0\LibrenmsConfigCompliance\Console\ScanCommand;
 use Palerm0\LibrenmsConfigCompliance\Hooks\MenuEntry;
+use Palerm0\LibrenmsConfigCompliance\Hooks\Settings;
 
 class ConfigComplianceProvider extends ServiceProvider
 {
@@ -34,10 +36,17 @@ class ConfigComplianceProvider extends ServiceProvider
         // Menu-hook altijd registreren, zodat LibreNMS de plugin in de UI toont.
         $pluginManager->publishHook(self::PLUGIN_NAME, MenuEntryHook::class, MenuEntry::class);
 
+        // Settings-hook voor de "Settings"-knop op de pluginbeheer-pagina.
+        $pluginManager->publishHook(self::PLUGIN_NAME, SettingsHook::class, Settings::class);
+
         // Het scan-commando altijd beschikbaar maken (ook voor cron via lnms).
         if ($this->app->runningInConsole()) {
             $this->commands([ScanCommand::class]);
         }
+
+        // Views altijd laden: de settings-view moet ook renderen als de
+        // plugin (nog) uitgeschakeld is, anders toont LibreNMS "Missing view."
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', self::PLUGIN_NAME);
 
         // De rest alleen laden als de plugin in LibreNMS is ingeschakeld.
         if (! $pluginManager->pluginEnabled(self::PLUGIN_NAME)) {
@@ -45,6 +54,5 @@ class ConfigComplianceProvider extends ServiceProvider
         }
 
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', self::PLUGIN_NAME);
     }
 }
