@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.10.0** &middot; License: **GPL-3.0-or-later**
+Version: **v1.10.2** &middot; License: **GPL-3.0-or-later**
 
 ---
 
@@ -160,13 +160,28 @@ show up in the alert details.
 
 Example alert rule (Alerts &raquo; Alert Rules &raquo; Create):
 
-- `components.type` equals `config-compliance`
-- AND `components.status` equals `2`
+- `component.type` equals `config-compliance`
+- AND `component.status` equals `2`
+
+Or, using LibreNMS' built-in component macros (this variant also honours the
+component's `ignore` flag, so you can exclude individual devices from
+alerting):
+
+- `macros.component_critical` equals `1`
+- AND `component.type` equals `config-compliance`
 
 Set the severity to your liking. Use `>= 1` instead of `= 2` if missing
 Oxidized configs should also alert. Note that alerts follow the **scan**
 schedule: with a daily cron scan, a device that drifts out of compliance
 during the day raises the alert after the next scan.
+
+Two practical tips:
+
+- **Attach a transport to the rule** (or have a default transport set up),
+  otherwise the alert shows in the LibreNMS UI but no notification is sent.
+- Consider severity **Warning** rather than Critical: compliance drift is
+  important but rarely urgent, and this keeps it visually distinct from
+  device-down alerts.
 
 ## LibreNMS updates
 

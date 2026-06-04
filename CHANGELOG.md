@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.10.2
+- README: two practical alerting tips (attach a transport to the rule for
+  notifications; consider Warning severity for compliance drift).
+
+## v1.10.1
+- README fix: the component table is singular (`component.type`, not
+  `components.type`) in alert rules; documented the macro-based rule variant
+  as well.
+
 ## v1.10.0
 - **Alerting integration**: after every scan the plugin writes a LibreNMS
   component per device (type `config-compliance`, status 0 = compliant,
