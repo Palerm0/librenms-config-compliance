@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.9.7** &middot; License: **GPL-3.0-or-later**
+Version: **v1.10.0** &middot; License: **GPL-3.0-or-later**
 
 ---
 
@@ -139,6 +139,34 @@ Running it manually also works:
 
 A device that is down in LibreNMS is still scanned against its last known
 config, and gets an extra grey **Down** label next to its status.
+
+## Alerting
+
+After every scan the plugin writes a LibreNMS **component** per scanned
+device (type `config-compliance`) with the compliance status, so you can use
+the normal LibreNMS alerting system &mdash; including your existing
+transports such as e-mail or Microsoft Teams.
+
+Component status codes:
+
+| status | Meaning                          |
+|--------|----------------------------------|
+| 0      | Compliant (or no rules apply)    |
+| 1      | No config found in Oxidized      |
+| 2      | Non-compliant                    |
+
+The failed rule names are stored in the component's `error` field, so they
+show up in the alert details.
+
+Example alert rule (Alerts &raquo; Alert Rules &raquo; Create):
+
+- `components.type` equals `config-compliance`
+- AND `components.status` equals `2`
+
+Set the severity to your liking. Use `>= 1` instead of `= 2` if missing
+Oxidized configs should also alert. Note that alerts follow the **scan**
+schedule: with a daily cron scan, a device that drifts out of compliance
+during the day raises the alert after the next scan.
 
 ## LibreNMS updates
 

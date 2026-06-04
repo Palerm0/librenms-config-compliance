@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.10.0
+- **Alerting integration**: after every scan the plugin writes a LibreNMS
+  component per device (type `config-compliance`, status 0 = compliant,
+  1 = no config, 2 = non-compliant, failed rule names in the error field).
+  This makes compliance alertable through normal LibreNMS alert rules and
+  transports. See the new "Alerting" section in the README for an example
+  rule.
+
 ## v1.9.7
 - Added an **Updating** section to the README so users know that
   `lnms plugin:add` is idempotent and is also the right command to pick up

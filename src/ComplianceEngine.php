@@ -301,7 +301,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.9.7';
+    public const VERSION = '1.10.0';
 
     public function version(): string
     {
@@ -494,8 +494,78 @@ class ComplianceEngine
 
         $this->writeJson('results.json', $report);
         $this->appendHistory($report);
+        $this->syncComponents($results);
 
         return $report;
+    }
+
+    /**
+     * Schrijft per device een LibreNMS-component met de compliance-status,
+     * zodat er gewone LibreNMS alert rules op gemaakt kunnen worden
+     * (components.type = "config-compliance").
+     *
+     * Statuscodes: 0 = compliant / geen regels, 1 = geen config in Oxidized
+     * (waarschuwing), 2 = non-compliant (kritiek). Defensief opgezet: een
+     * fout hier mag nooit de scan zelf laten mislukken.
+     */
+    private function syncComponents(array $results): void
+    {
+        try {
+            if (! class_exists(\App\Models\Component::class)) {
+                return; // oudere LibreNMS zonder Component-model: stilletjes overslaan
+            }
+
+            $deviceIds = [];
+
+            foreach ($results as $r) {
+                if (empty($r['device_id'])) {
+                    continue;
+                }
+
+                $deviceIds[] = (int) $r['device_id'];
+
+                $status = 0;
+                $error = '';
+
+                if (($r['status'] ?? '') === 'non_compliant') {
+                    $status = 2;
+                    $failed = array_map(
+                        fn ($f) => (string) ($f['name'] ?? ''),
+                        $r['failed_rules'] ?? []
+                    );
+                    $error = 'Failed rules: ' . implode(', ', array_filter($failed));
+                } elseif (($r['status'] ?? '') === 'no_config') {
+                    $status = 1;
+                    $error = 'No config found in Oxidized';
+                }
+
+                $component = \App\Models\Component::query()
+                    ->where('device_id', $r['device_id'])
+                    ->where('type', 'config-compliance')
+                    ->first();
+
+                if (! $component) {
+                    $component = new \App\Models\Component;
+                    $component->device_id = (int) $r['device_id'];
+                    $component->type = 'config-compliance';
+                }
+
+                $component->label = 'Config compliance';
+                $component->status = $status;
+                $component->error = $error;
+                $component->save();
+            }
+
+            // Componenten opruimen van devices die niet meer in de scan zitten.
+            if ($deviceIds !== []) {
+                \App\Models\Component::query()
+                    ->where('type', 'config-compliance')
+                    ->whereNotIn('device_id', $deviceIds)
+                    ->delete();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('config-compliance: component sync failed: ' . $e->getMessage());
+        }
     }
 
     /* ---------- Hulpfuncties ---------- */
