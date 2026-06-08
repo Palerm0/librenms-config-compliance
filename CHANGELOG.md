@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.11.0
+- **New check types: regular expressions** (`Matches regex` /
+  `Does not match regex`). Lets one rule cover repetitive per-port or
+  per-interface config instead of many literal patterns, e.g.
+  `spanning-tree \d+ bpdu-protection`. The rule editor validates the regex
+  live, and an invalid regex always fails the check (and is logged) so it is
+  noticed rather than silently passing. Thanks to @sorano for the request.
+
 ## v1.10.4
 - **Bugfix**: the Settings button on the LibreNMS plugin admin page showed
   "Missing view." The plugin now implements the official SettingsHook with a

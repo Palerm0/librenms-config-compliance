@@ -203,7 +203,7 @@ class ComplianceEngine
     private function normalizeType(mixed $type): string
     {
         $type = (string) $type;
-        $valid = ['contains', 'not_contains', 'contains_any', 'contains_none'];
+        $valid = ['contains', 'not_contains', 'contains_any', 'contains_none', 'matches', 'not_matches'];
 
         return in_array($type, $valid, true) ? $type : 'contains';
     }
@@ -230,6 +230,24 @@ class ComplianceEngine
             }
 
             return $type === 'contains_any' ? $anyFound : ! $anyFound;
+        }
+
+        if ($type === 'matches' || $type === 'not_matches') {
+            // Regex-check. We wikkelen het patroon in delimiters en vangen een
+            // ongeldige regex af: die laten we de check altijd laten FALEN, zodat
+            // het opvalt (device wordt non-compliant) en de scan nooit crasht.
+            $regex = '~' . str_replace('~', '\~', $pattern) . '~';
+            $result = @preg_match($regex, $config);
+
+            if ($result === false) {
+                Log::warning('config-compliance: invalid regex skipped: ' . $pattern);
+
+                return false;
+            }
+
+            $found = $result === 1;
+
+            return $type === 'matches' ? $found : ! $found;
         }
 
         $found = stripos($config, $pattern) !== false;
@@ -301,7 +319,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.10.4';
+    public const VERSION = '1.11.0';
 
     public function version(): string
     {

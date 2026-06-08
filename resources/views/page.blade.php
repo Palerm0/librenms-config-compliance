@@ -490,12 +490,32 @@
             opt('not_contains', 'Does not contain') +
             opt('contains_any', 'Contains any of') +
             opt('contains_none', 'Contains none of') +
+            opt('matches', 'Matches regex') +
+            opt('not_matches', 'Does not match regex') +
             '</select>';
     }
 
     // True for the multi-pattern types (one pattern per line).
     function isMultiType(type) {
         return type === 'contains_any' || type === 'contains_none';
+    }
+
+    // True for the regular-expression types.
+    function isRegexType(type) {
+        return type === 'matches' || type === 'not_matches';
+    }
+
+    // Live check that a regex compiles; flags the field red if it doesn't.
+    // (JavaScript regex is not identical to PCRE, but catches the common
+    //  syntax errors so the user gets feedback before saving.)
+    function validateRegexField(el) {
+        let ok = true;
+        if (el.value !== '') {
+            try { new RegExp(el.value); } catch (e) { ok = false; }
+        }
+        el.style.borderColor = ok ? '' : '#d9534f';
+        const hint = el.parentNode.querySelector('.cc-regex-hint');
+        if (hint) { hint.style.display = ok ? 'none' : 'block'; }
     }
 
     function onCheckTypeChange(ri, ci, value) {
@@ -524,6 +544,14 @@
                     ' placeholder="One pattern per line — any of these"' +
                     ' oninput="autoGrow(this)"' +
                     ' onchange="' + assign + '">' + escapeHtml(check.pattern) + '</textarea>';
+            } else if (isRegexType(check.type)) {
+                patternCell =
+                    '<input class="form-control input-sm cc-regex" value="' + escapeAttr(check.pattern) + '"' +
+                    ' placeholder="Regular expression, e.g. spanning-tree \\d+ bpdu-protection"' +
+                    ' oninput="validateRegexField(this)"' +
+                    ' onchange="' + assign + '">' +
+                    '<span class="cc-regex-hint text-danger" style="display:none; font-size:11px;">' +
+                    'Invalid regular expression</span>';
             } else {
                 patternCell =
                     '<input class="form-control input-sm" value="' + escapeAttr(check.pattern) + '"' +
@@ -587,7 +615,9 @@
                       '<b>Contains</b> &mdash; pattern must be in the config<br>' +
                       '<b>Does not contain</b> &mdash; pattern must be absent<br>' +
                       '<b>Contains any of</b> &mdash; one pattern per line; passes if at least one is present<br>' +
-                      '<b>Contains none of</b> &mdash; one pattern per line; passes if none are present' +
+                      '<b>Contains none of</b> &mdash; one pattern per line; passes if none are present<br>' +
+                      '<b>Matches regex</b> &mdash; passes if the regular expression matches the config<br>' +
+                      '<b>Does not match regex</b> &mdash; passes if the regular expression does not match' +
                     '"></i>' +
                   '</th>' +
                   '<th>Pattern</th>' +
@@ -771,6 +801,9 @@
 
         // Meerregelige patroon-vakken laten groeien op basis van hun inhoud.
         document.querySelectorAll('#rules-container textarea.cc-grow').forEach(autoGrow);
+
+        // Regex-velden meteen valideren (rode rand bij ongeldige regex).
+        document.querySelectorAll('#rules-container input.cc-regex').forEach(validateRegexField);
     }
 
     // Past de hoogte van een textarea aan op z'n inhoud, zodat alle ingevoerde

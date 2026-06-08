@@ -79,6 +79,8 @@ Each check has a **type** and a **pattern**:
 | Does not contain      | the pattern appears nowhere in the config         |
 | Contains any of       | at least one of the lines appears (one per line)  |
 | Contains none of      | none of the lines appear (one per line)           |
+| Matches regex         | the regular expression matches the config         |
+| Does not match regex  | the regular expression does not match the config  |
 
 A classic first rule for Cisco IOS:
 
@@ -145,6 +147,7 @@ Run the cron more often — the scan is light.
 | No default SNMP community         | any       | Contains none of → `snmp-server community public` + `snmp-server community private` |
 | Management ACL present (variants) | vrp       | Contains any of → one accepted variant per line   |
 | SSH v2 enforced                   | ios       | Contains → `ip ssh version 2`                     |
+| BPDU protection on every port     | procurve  | Matches regex → `spanning-tree \d+ bpdu-protection` |
 
 Start small: one or two rules, verify the results match reality, then grow
 your rule set. A rule that's wrong is worse than no rule — it teaches
