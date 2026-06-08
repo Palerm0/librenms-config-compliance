@@ -183,10 +183,14 @@
                                 <td><code>{{ $d['os'] ?? '' }}</code></td>
                                 <td>
                                     @foreach($d['failed_rules'] ?? [] as $fr)
+                                        @php
+                                            $frFull = (string) ($fr['name'] ?? '');
+                                            $frShort = \Illuminate\Support\Str::limit($frFull, 40);
+                                        @endphp
                                         <a href="javascript:void(0)" class="label label-danger"
                                            style="margin-right:3px; cursor:pointer;"
-                                           title="Go to this device's group in the results"
-                                           onclick="ccGotoGroup('{{ $ccTabHref }}','{{ $ccCollId }}')">{{ $fr['name'] }}</a>
+                                           title="{{ $frFull }}"
+                                           onclick="ccGotoGroup('{{ $ccTabHref }}','{{ $ccCollId }}')">{{ $frShort }}</a>
                                     @endforeach
                                 </td>
                             </tr>
@@ -438,6 +442,10 @@
     // Rule shape: { name, group, os, checks: [ { type, pattern }, ... ] }
     let rules = @json($rules);
 
+    // Endpoint + token for live (server-side, PCRE) regex validation.
+    const CC_VALIDATE_URL = '{{ route('config-compliance.validate-regex') }}';
+    const CC_CSRF = '{{ csrf_token() }}';
+
     // Safety: make sure every rule has a checks array.
     rules.forEach(function (rule) {
         if (!Array.isArray(rule.checks)) {
@@ -505,14 +513,33 @@
         return type === 'matches' || type === 'not_matches';
     }
 
-    // Live check that a regex compiles; flags the field red if it doesn't.
-    // (JavaScript regex is not identical to PCRE, but catches the common
-    //  syntax errors so the user gets feedback before saving.)
+    // Live regex-validatie. We laten de server (PHP PCRE) oordelen, want dat
+    // is exact de engine die de scan straks gebruikt — JavaScript's eigen
+    // regex kent bijvoorbeeld (?m) en (?i) niet en zou die ten onrechte
+    // afkeuren. Gedebounced, en faalt 'open' bij een netwerkfout (dan geen
+    // valse rode rand).
     function validateRegexField(el) {
-        let ok = true;
-        if (el.value !== '') {
-            try { new RegExp(el.value); } catch (e) { ok = false; }
-        }
+        const value = el.value;
+        if (value === '') { setRegexValid(el, true); return; }
+
+        clearTimeout(el._ccRegexTimer);
+        el._ccRegexTimer = setTimeout(function () {
+            fetch(CC_VALIDATE_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': CC_CSRF,
+                },
+                body: JSON.stringify({ pattern: value }),
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { setRegexValid(el, !!d.valid); })
+            .catch(function () { setRegexValid(el, true); });
+        }, 300);
+    }
+
+    function setRegexValid(el, ok) {
         el.style.borderColor = ok ? '' : '#d9534f';
         const hint = el.parentNode.querySelector('.cc-regex-hint');
         if (hint) { hint.style.display = ok ? 'none' : 'block'; }
@@ -547,11 +574,14 @@
             } else if (isRegexType(check.type)) {
                 patternCell =
                     '<input class="form-control input-sm cc-regex" value="' + escapeAttr(check.pattern) + '"' +
-                    ' placeholder="Regular expression, e.g. spanning-tree \\d+ bpdu-protection"' +
+                    ' placeholder="Regular expression, e.g. ^hostname \\S+"' +
                     ' oninput="validateRegexField(this)"' +
                     ' onchange="' + assign + '">' +
                     '<span class="cc-regex-hint text-danger" style="display:none; font-size:11px;">' +
-                    'Invalid regular expression</span>';
+                    'Invalid regular expression</span>' +
+                    '<span class="text-muted" style="display:block; font-size:11px; margin-top:2px;">' +
+                    'Matched per line &mdash; <code>^</code> and <code>$</code> anchor to each line. ' +
+                    'Example: <code>^hostname \\S+</code></span>';
             } else {
                 patternCell =
                     '<input class="form-control input-sm" value="' + escapeAttr(check.pattern) + '"' +
@@ -616,7 +646,7 @@
                       '<b>Does not contain</b> &mdash; pattern must be absent<br>' +
                       '<b>Contains any of</b> &mdash; one pattern per line; passes if at least one is present<br>' +
                       '<b>Contains none of</b> &mdash; one pattern per line; passes if none are present<br>' +
-                      '<b>Matches regex</b> &mdash; passes if the regular expression matches the config<br>' +
+                      '<b>Matches regex</b> &mdash; passes if the regular expression matches the config (per line; ^ and $ anchor to each line)<br>' +
                       '<b>Does not match regex</b> &mdash; passes if the regular expression does not match' +
                     '"></i>' +
                   '</th>' +

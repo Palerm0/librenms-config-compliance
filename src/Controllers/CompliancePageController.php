@@ -15,6 +15,7 @@
 namespace Palerm0\LibrenmsConfigCompliance\Controllers;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -70,5 +71,19 @@ class CompliancePageController extends Controller
         $engine->saveSettings((string) $request->input('oxidized_url', ''));
 
         return redirect()->route('config-compliance.index')->with('status', 'Settings saved.');
+    }
+
+    /**
+     * Valideert een regex-patroon met de echte PCRE-engine en geeft JSON terug.
+     * Wordt door de regelbewerker aangeroepen om live te tonen of een
+     * reguliere expressie geldig is (leeg patroon = geldig).
+     */
+    public function validateRegex(Request $request, ComplianceEngine $engine): JsonResponse
+    {
+        $pattern = (string) $request->input('pattern', '');
+
+        return response()->json([
+            'valid' => $pattern === '' || $engine->isValidRegex($pattern),
+        ]);
     }
 }

@@ -3,6 +3,26 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.11.2
+- Long rule names (and the pattern shown when a rule is left unnamed) are now
+  truncated in the results with the full text available on hover, so a long
+  regex no longer blows out the failed-rules labels.
+- Failed-check details now have correct wording for regex checks
+  ("no match for regex:" / "regex matched (not allowed):") instead of the
+  generic "missing:", and long patterns in the details are truncated with the
+  full text on hover. Applies to every rule and every check type.
+- Regex checks now match **per line** by default (multiline mode), so `^` and
+  `$` anchor to each config line — which is what you want for line-oriented
+  network configs. Use `\A` / `\z` for the absolute start/end of the whole
+  config. The rule editor shows an inline example and hint for regex fields.
+
+## v1.11.1
+- **Bugfix**: the regex validator in the rule editor rejected valid PCRE
+  patterns such as inline modifiers `(?m)` and `(?i)`, because it used the
+  browser's own regex engine. Validation now runs server-side with the same
+  PCRE engine the scan uses, so anything PHP accepts is accepted here too.
+  Thanks to @sorano for catching this.
+
 ## v1.11.0
 - **New check types: regular expressions** (`Matches regex` /
   `Does not match regex`). Lets one rule cover repetitive per-port or

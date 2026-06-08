@@ -50,6 +50,18 @@ class ComplianceEngine
         ];
     }
 
+    /**
+     * Controleert of een patroon een geldige reguliere expressie is volgens
+     * PCRE (dezelfde engine die de scan gebruikt). Zo klopt de validatie in
+     * de UI exact met wat er bij het scannen gebeurt.
+     */
+    public function isValidRegex(string $pattern): bool
+    {
+        $regex = '~' . str_replace('~', '\~', $pattern) . '~m';
+
+        return @preg_match($regex, '') !== false;
+    }
+
     public function saveSettings(string $oxidizedUrl): void
     {
         $this->writeJson('settings.json', [
@@ -233,10 +245,12 @@ class ComplianceEngine
         }
 
         if ($type === 'matches' || $type === 'not_matches') {
-            // Regex-check. We wikkelen het patroon in delimiters en vangen een
-            // ongeldige regex af: die laten we de check altijd laten FALEN, zodat
+            // Regex-check met multiline-modus ('m'): ^ en $ ankeren per regel,
+            // wat intuïtief is voor regel-georiënteerde netwerkconfigs. Wie het
+            // absolute begin/einde van de config wil, gebruikt \A en \z.
+            // Een ongeldige regex laten we de check altijd laten FALEN, zodat
             // het opvalt (device wordt non-compliant) en de scan nooit crasht.
-            $regex = '~' . str_replace('~', '\~', $pattern) . '~';
+            $regex = '~' . str_replace('~', '\~', $pattern) . '~m';
             $result = @preg_match($regex, $config);
 
             if ($result === false) {
@@ -319,7 +333,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.11.0';
+    public const VERSION = '1.11.2';
 
     public function version(): string
     {

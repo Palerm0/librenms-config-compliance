@@ -132,14 +132,15 @@
                                 $allChecks = ($isObj && is_array($failed['checks'] ?? null)) ? $failed['checks'] : [];
                                 $failedChecks = array_values(array_filter($allChecks, fn ($c) => empty($c['passed'])));
                                 $detailId = 'cc-d-' . $tabKey . '-' . ($device['device_id'] ?? 'x') . '-' . $ri;
+                                $fNameShort = \Illuminate\Support\Str::limit((string) $fName, 60);
                             @endphp
                             <li>
                                 @if(!empty($failedChecks))
                                     <a role="button" data-toggle="collapse" href="#{{ $detailId }}"
-                                       style="text-decoration:none;">
-                                        <i class="fa fa-caret-right text-muted"></i> {{ $fName }}</a>
+                                       style="text-decoration:none;" title="{{ $fName }}">
+                                        <i class="fa fa-caret-right text-muted"></i> {{ $fNameShort }}</a>
                                 @else
-                                    {{ $fName }}
+                                    <span title="{{ $fName }}">{{ $fNameShort }}</span>
                                 @endif
                                 @if($cTotal > 1)
                                     <span class="badge" title="{{ $cFailed }} of {{ $cTotal }} checks failed"
@@ -157,6 +158,10 @@
                                                         $cLabel = 'none of these present:';
                                                     } elseif ($cType === 'contains_none') {
                                                         $cLabel = 'one of these present (not allowed):';
+                                                    } elseif ($cType === 'matches') {
+                                                        $cLabel = 'no match for regex:';
+                                                    } elseif ($cType === 'not_matches') {
+                                                        $cLabel = 'regex matched (not allowed):';
                                                     } else {
                                                         $cLabel = 'missing:';
                                                     }
@@ -168,7 +173,7 @@
                                                     <i class="fa fa-times"></i>
                                                     <span class="text-muted">{{ $cLabel }}</span>
                                                     @foreach($cPatterns as $p)
-                                                        <code>{{ $p }}</code>@if(!$loop->last) <span class="text-muted">/</span> @endif
+                                                        <code title="{{ $p }}">{{ \Illuminate\Support\Str::limit($p, 80) }}</code>@if(!$loop->last) <span class="text-muted">/</span> @endif
                                                     @endforeach
                                                 </li>
                                             @endforeach

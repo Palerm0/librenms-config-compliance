@@ -91,6 +91,32 @@ Tip: when the same setting can be written in more than one way (different
 sites, different syntax variants), use **Contains any of** with one variant
 per line. The check passes if any variant is present.
 
+### Working with regex
+
+The two regex types use standard PCRE (the same engine PHP uses), with one
+convenience: matching is done **per line**. That means `^` and `$` anchor to
+the start and end of each config line, which is almost always what you want
+for network configs. For example:
+
+- `^hostname \S+` — passes if any line starts with `hostname` followed by a
+  value. (Without per-line matching, `^` would only check the very first
+  line of the whole config — a common source of confusion.)
+- `^\s*ip ssh version 2\s*$` — the SSH-v2 line, allowing leading/trailing
+  whitespace.
+- `spanning-tree \d+ bpdu-protection` — matches `spanning-tree 1 …`,
+  `spanning-tree 24 …`, etc. (no anchors needed).
+
+Notes:
+
+- A regex check passes on the **first** match. "Matches regex" means *at
+  least one* line matches — it does not require every line to match.
+- Need the absolute start/end of the whole config instead of per line? Use
+  `\A` and `\z`.
+- Add inline modifiers when needed, e.g. `(?i)` for case-insensitive.
+- The rule editor validates your expression live (red border if it doesn't
+  compile), and an invalid regex always fails the check rather than silently
+  passing.
+
 Click the blue save button for the OS section.
 
 ## 6. Run a scan and read the results

@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.11.0** &middot; License: **GPL-3.0-or-later**
+Version: **v1.11.2** &middot; License: **GPL-3.0-or-later**
 
 **New to the plugin?** Read the step-by-step
 [Getting started guide](docs/getting-started.md) — from zero to your first
@@ -104,6 +104,12 @@ Then reload the page.
    "none of" types take one pattern per line and are handy when the same
    thing looks slightly different per device or location (e.g. a firewall
    object name that varies between sites).
+
+   The regex types use standard PCRE and match **per line** (so `^` and `$`
+   anchor to each config line, e.g. `^hostname \S+`). A regex check passes on
+   the first match; use `\A` / `\z` for the absolute start/end of the whole
+   config. The editor validates the expression live and an invalid regex
+   always fails the check.
 
    A rule applies to a device when both **Group** and **OS** match. Tip: the
    exact OS name (such as `ios`, `vrp`, `fortigate`) is shown in the **OS**

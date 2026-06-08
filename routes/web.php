@@ -32,4 +32,8 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     // Opslaan van de instellingen (o.a. de Oxidized-URL).
     Route::post('plugin/config-compliance-page/settings', [CompliancePageController::class, 'saveSettings'])
         ->name('config-compliance.settings');
+
+    // Live regex-validatie voor de regelbewerker (PCRE via de server).
+    Route::post('plugin/config-compliance-page/validate-regex', [CompliancePageController::class, 'validateRegex'])
+        ->name('config-compliance.validate-regex');
 });
