@@ -149,9 +149,31 @@ class ComplianceEngine
                 continue;
             }
 
+            // Groep verwerken op id (stabiel) i.p.v. alleen naam. Zo blijft een
+            // regel gekoppeld als de groep in LibreNMS wordt hernoemd.
+            $gname = trim((string) ($rule['group'] ?? '*')) ?: '*';
+            $gid = isset($rule['group_id']) && $rule['group_id'] !== null && $rule['group_id'] !== ''
+                ? (int) $rule['group_id']
+                : null;
+
+            if ($gname === '*') {
+                $gid = 0;
+            } else {
+                $maps = $this->groupMaps();
+
+                if ($gid !== null && $gid > 0 && isset($maps['byId'][$gid])) {
+                    // Toon altijd de actuele naam die bij deze id hoort.
+                    $gname = $maps['byId'][$gid];
+                } elseif ($gid === null && isset($maps['byName'][$gname])) {
+                    // Oudere regel zonder id: leid de id af uit de huidige naam.
+                    $gid = $maps['byName'][$gname];
+                }
+            }
+
             $out[] = [
                 'name' => (string) ($rule['name'] ?? ''),
-                'group' => trim((string) ($rule['group'] ?? '*')) ?: '*',
+                'group' => $gname,
+                'group_id' => $gid,
                 'os' => trim((string) ($rule['os'] ?? '*')) ?: '*',
                 'checks' => $this->normalizeChecks($rule),
             ];
@@ -290,15 +312,81 @@ class ComplianceEngine
 
             $name = trim((string) ($rule['name'] ?? ''));
 
+            // De editor stuurt de groep als naam; we leiden de id ervan af en
+            // slaan beide op. De naam is leidend (de gebruiker koos die net),
+            // dus een eventueel meegestuurde oude id negeren we.
+            $gname = trim((string) ($rule['group'] ?? '*')) ?: '*';
+
+            if ($gname === '*') {
+                $gid = 0;
+            } else {
+                $maps = $this->groupMaps();
+                $gid = $maps['byName'][$gname]
+                    ?? (isset($rule['group_id']) && $rule['group_id'] !== '' ? (int) $rule['group_id'] : null);
+            }
+
             $clean[] = [
                 'name' => $name !== '' ? $name : $checks[0]['pattern'],
-                'group' => trim((string) ($rule['group'] ?? '*')) ?: '*',
+                'group' => $gname,
+                'group_id' => $gid,
                 'os' => trim((string) ($rule['os'] ?? '*')) ?: '*',
                 'checks' => $checks,
             ];
         }
 
         $this->writeJson('rules.json', $clean);
+    }
+
+    /**
+     * Eenmalige, idempotente migratie: vult bij bestaande regels de group_id
+     * aan op basis van hun huidige groepsnaam, en ververst de opgeslagen naam
+     * als een groep inmiddels is hernoemd. Wordt aangeroepen bij het openen
+     * van de plugin-pagina. Schrijft alleen weg als er echt iets verandert.
+     */
+    public function migrateGroupIds(): void
+    {
+        $data = $this->readJson('rules.json');
+
+        if (! is_array($data) || $data === []) {
+            return;
+        }
+
+        $maps = $this->groupMaps();
+        $changed = false;
+
+        foreach ($data as $i => $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+
+            $gname = trim((string) ($rule['group'] ?? '*')) ?: '*';
+            $hasId = isset($rule['group_id']) && $rule['group_id'] !== null && $rule['group_id'] !== '';
+
+            if ($gname === '*') {
+                if (! $hasId || (int) $rule['group_id'] !== 0) {
+                    $data[$i]['group_id'] = 0;
+                    $changed = true;
+                }
+
+                continue;
+            }
+
+            if ($hasId && (int) $rule['group_id'] > 0) {
+                $current = $maps['byId'][(int) $rule['group_id']] ?? null;
+
+                if ($current !== null && $current !== $gname) {
+                    $data[$i]['group'] = $current;
+                    $changed = true;
+                }
+            } elseif (isset($maps['byName'][$gname])) {
+                $data[$i]['group_id'] = $maps['byName'][$gname];
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $this->writeJson('rules.json', $data);
+        }
     }
 
     /**
@@ -310,6 +398,32 @@ class ComplianceEngine
     public function availableGroups(): array
     {
         return DeviceGroup::orderBy('name')->pluck('name')->all();
+    }
+
+    /**
+     * Bouwt een vertaaltabel tussen device-groep-id's en hun huidige naam.
+     * Hiermee kunnen regels naar id verwijzen (stabiel) terwijl we voor de
+     * weergave altijd de actuele naam tonen — ook nadat een groep hernoemd is.
+     *
+     * @return array{byId: array<int, string>, byName: array<string, int>}
+     */
+    private function groupMaps(): array
+    {
+        static $maps = null;
+
+        if ($maps !== null) {
+            return $maps;
+        }
+
+        $byId = [];
+        $byName = [];
+
+        foreach (DeviceGroup::get(['id', 'name']) as $g) {
+            $byId[(int) $g->id] = (string) $g->name;
+            $byName[(string) $g->name] = (int) $g->id;
+        }
+
+        return $maps = ['byId' => $byId, 'byName' => $byName];
     }
 
     /**
@@ -333,7 +447,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.11.2';
+    public const VERSION = '1.11.3';
 
     public function version(): string
     {
@@ -390,22 +504,33 @@ class ComplianceEngine
         $noRules = 0;
 
         foreach ($devices as $device) {
-            // De groepsnamen waar dit device lid van is.
+            // De groepen waar dit device lid van is, op naam én op id.
             $deviceGroups = $device->groups->pluck('name')->all();
+            $deviceGroupIds = $device->groups->pluck('id')->map(fn ($v) => (int) $v)->all();
 
             // Een regel telt mee als zowel het OS-filter als het groep-filter
-            // past ('*' betekent telkens: geldt voor alles). Regels zonder
-            // checks tellen niet mee.
-            $matched = array_values(array_filter($rules, function ($rule) use ($device, $deviceGroups): bool {
+            // past ('*' / id 0 betekent telkens: geldt voor alles). Het groep-
+            // filter werkt op id (stabiel bij hernoemen) met terugval op naam
+            // voor oudere regels die nog geen id hebben. Regels zonder checks
+            // tellen niet mee.
+            $matched = array_values(array_filter($rules, function ($rule) use ($device, $deviceGroups, $deviceGroupIds): bool {
                 if (empty($rule['checks'])) {
                     return false;
                 }
 
                 $ruleOs = $rule['os'] ?? '*';
                 $ruleGroup = $rule['group'] ?? '*';
+                $ruleGid = $rule['group_id'] ?? null;
 
                 $osOk = $ruleOs === '*' || $ruleOs === $device->os;
-                $groupOk = $ruleGroup === '*' || in_array($ruleGroup, $deviceGroups, true);
+
+                if ($ruleGroup === '*' || $ruleGid === 0) {
+                    $groupOk = true;
+                } elseif ($ruleGid !== null && $ruleGid > 0) {
+                    $groupOk = in_array($ruleGid, $deviceGroupIds, true);
+                } else {
+                    $groupOk = in_array($ruleGroup, $deviceGroups, true);
+                }
 
                 return $osOk && $groupOk;
             }));

@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.11.2** &middot; License: **GPL-3.0-or-later**
+Version: **v1.11.3** &middot; License: **GPL-3.0-or-later**
 
 **New to the plugin?** Read the step-by-step
 [Getting started guide](docs/getting-started.md) — from zero to your first
@@ -115,7 +115,9 @@ Then reload the page.
    exact OS name (such as `ios`, `vrp`, `fortigate`) is shown in the **OS**
    column of the results table after the first scan. In the editor the rules
    are grouped into collapsible sections per OS, so a long list stays tidy;
-   rules with OS `*` sit in an "All OS" section at the bottom.
+   rules with OS `*` sit in an "All OS" section at the bottom. A rule's group
+   is tracked by its LibreNMS group ID, so renaming a group keeps the rule
+   connected (the current name is shown automatically).
 
    In the results table two coloured badges show the state: *Failed checks*
    per device (green 0 / orange 1&ndash;5 / red more than 5) and, per failed

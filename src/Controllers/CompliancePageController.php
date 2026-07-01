@@ -25,6 +25,10 @@ class CompliancePageController extends Controller
 {
     public function index(ComplianceEngine $engine): View
     {
+        // Eenmalig bestaande regels voorzien van een group_id (en hernoemde
+        // groepen bijwerken). Idempotent: schrijft alleen bij wijzigingen.
+        $engine->migrateGroupIds();
+
         return view('config-compliance::page', [
             'report' => $engine->latestReport(),
             'rules' => $engine->rules(),

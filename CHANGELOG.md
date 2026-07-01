@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.11.3
+- **Rules now track their device group by ID instead of name**, so renaming a
+  LibreNMS group no longer silently disconnects the rules that use it. The
+  editor still works with names; the current name is always resolved from the
+  ID for display. Existing rules are migrated automatically (their group ID is
+  filled in) the first time the plugin page is opened after updating. Thanks
+  to @sorano for reporting this.
+
 ## v1.11.2
 - Long rule names (and the pattern shown when a rule is left unnamed) are now
   truncated in the results with the full text available on hover, so a long
