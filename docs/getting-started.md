@@ -63,12 +63,15 @@ by OS; pick the OS your devices run (for example `ios` for Cisco IOS) and
 click **+** to add a rule. A rule has:
 
 - **Name** — what you'll see in results and alerts, e.g. `No http server`.
-- **Group** — the LibreNMS **device group** this rule applies to. Leave it
-  empty (or `*`) to apply to all groups — that's the right choice for most
-  rules. Pick a specific group only when the policy genuinely differs per
-  group (e.g. stricter rules for a DMZ group). A device in multiple groups
-  matches when *any* of its groups matches; the verdict is per device, so
-  you never need to duplicate a rule across groups.
+- **OS** — which operating system(s) the rule applies to. You can pick more
+  than one (Ctrl/Cmd-click), which is handy when platforms share syntax, e.g.
+  `ios` and `iosxe`. Leave "All OS" selected to apply to every OS.
+- **Group** — the LibreNMS **device group(s)** this rule applies to. You can
+  pick several here too. Leave "All groups" selected to apply everywhere —
+  that's the right choice for most rules. Pick specific groups only when the
+  policy genuinely differs per group (e.g. stricter rules for a DMZ group). A
+  device matches when *any* of its groups is among the selected ones; the
+  verdict is per device, so you never need to duplicate a rule across groups.
 - **One or more checks** — all checks must pass (AND).
 
 Each check has a **type** and a **pattern**:

@@ -149,37 +149,107 @@ class ComplianceEngine
                 continue;
             }
 
-            // Groep verwerken op id (stabiel) i.p.v. alleen naam. Zo blijft een
-            // regel gekoppeld als de groep in LibreNMS wordt hernoemd.
-            $gname = trim((string) ($rule['group'] ?? '*')) ?: '*';
-            $gid = isset($rule['group_id']) && $rule['group_id'] !== null && $rule['group_id'] !== ''
-                ? (int) $rule['group_id']
-                : null;
-
-            if ($gname === '*') {
-                $gid = 0;
-            } else {
-                $maps = $this->groupMaps();
-
-                if ($gid !== null && $gid > 0 && isset($maps['byId'][$gid])) {
-                    // Toon altijd de actuele naam die bij deze id hoort.
-                    $gname = $maps['byId'][$gid];
-                } elseif ($gid === null && isset($maps['byName'][$gname])) {
-                    // Oudere regel zonder id: leid de id af uit de huidige naam.
-                    $gid = $maps['byName'][$gname];
-                }
-            }
+            // Meerdere OS'en (os_list) en meerdere groepen (group_ids) worden
+            // ondersteund. Oudere regels met één 'os' / 'group' worden hier
+            // automatisch naar de lijst-vorm omgezet. Groepen worden op id
+            // bijgehouden (stabiel bij hernoemen); de namen tonen we actueel.
+            $osList = $this->normalizeOsList($rule);
+            [$groupIds, $groupNames] = $this->normalizeGroups($rule);
 
             $out[] = [
                 'name' => (string) ($rule['name'] ?? ''),
-                'group' => $gname,
-                'group_id' => $gid,
-                'os' => trim((string) ($rule['os'] ?? '*')) ?: '*',
+                'os_list' => $osList,
+                'group_ids' => $groupIds,
+                'group_names' => $groupNames,
+                // Enkelvoudige, afgeleide velden voor sectie-indeling in de
+                // editor en voor backward-compat met oudere plugin-versies.
+                'os' => $osList === [] ? '*' : implode(', ', $osList),
+                'group' => $groupNames === [] ? '*' : implode(', ', $groupNames),
+                'group_id' => $groupIds[0] ?? 0,
                 'checks' => $this->normalizeChecks($rule),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Haalt de OS-lijst uit een regel. Ondersteunt de nieuwe 'os_list' (array)
+     * en valt terug op het oude enkele 'os' (of komma-gescheiden). Een lege
+     * lijst betekent "alle OS'en" ('*').
+     *
+     * @param  array<string, mixed>  $rule
+     * @return array<int, string>
+     */
+    private function normalizeOsList(array $rule): array
+    {
+        $list = [];
+
+        if (isset($rule['os_list']) && is_array($rule['os_list'])) {
+            $list = $rule['os_list'];
+        } elseif (isset($rule['os'])) {
+            $list = explode(',', (string) $rule['os']);
+        }
+
+        $list = array_filter(
+            array_map(fn ($v) => trim((string) $v), $list),
+            fn ($v) => $v !== '' && $v !== '*'
+        );
+
+        return array_values(array_unique($list));
+    }
+
+    /**
+     * Haalt de groepen uit een regel als [ids, namen]. Voorkeur voor de
+     * nieuwe 'group_ids' (array, rename-safe); anders 'group_names' of het
+     * oude enkele 'group'. Namen worden waar mogelijk naar de actuele naam
+     * (via id) omgezet. Lege lijsten betekenen "alle groepen".
+     *
+     * @param  array<string, mixed>  $rule
+     * @return array{0: array<int, int>, 1: array<int, string>}
+     */
+    private function normalizeGroups(array $rule): array
+    {
+        $maps = $this->groupMaps();
+        $ids = [];
+        $names = [];
+
+        if (isset($rule['group_ids']) && is_array($rule['group_ids']) && $rule['group_ids'] !== []) {
+            foreach ($rule['group_ids'] as $gid) {
+                $gid = (int) $gid;
+                if ($gid > 0) {
+                    $ids[] = $gid;
+                    if (isset($maps['byId'][$gid])) {
+                        $names[] = $maps['byId'][$gid];
+                    }
+                }
+            }
+        } else {
+            $rawNames = [];
+
+            if (isset($rule['group_names']) && is_array($rule['group_names'])) {
+                $rawNames = $rule['group_names'];
+            } elseif (isset($rule['group'])) {
+                $rawNames = explode(',', (string) $rule['group']);
+            }
+
+            foreach ($rawNames as $n) {
+                $n = trim((string) $n);
+                if ($n === '' || $n === '*') {
+                    continue;
+                }
+
+                if (isset($maps['byName'][$n])) {
+                    $ids[] = $maps['byName'][$n];
+                }
+                $names[] = $n;
+            }
+        }
+
+        return [
+            array_values(array_unique(array_map('intval', $ids))),
+            array_values(array_unique($names)),
+        ];
     }
 
     /**
@@ -312,24 +382,21 @@ class ComplianceEngine
 
             $name = trim((string) ($rule['name'] ?? ''));
 
-            // De editor stuurt de groep als naam; we leiden de id ervan af en
-            // slaan beide op. De naam is leidend (de gebruiker koos die net),
-            // dus een eventueel meegestuurde oude id negeren we.
-            $gname = trim((string) ($rule['group'] ?? '*')) ?: '*';
-
-            if ($gname === '*') {
-                $gid = 0;
-            } else {
-                $maps = $this->groupMaps();
-                $gid = $maps['byName'][$gname]
-                    ?? (isset($rule['group_id']) && $rule['group_id'] !== '' ? (int) $rule['group_id'] : null);
-            }
+            // De editor stuurt os_list (namen) en group_names. We normaliseren
+            // beide met dezelfde helpers als bij het lezen: OS als lijst, en
+            // groepen naar id's (rename-safe) plus de bijbehorende namen.
+            $osList = $this->normalizeOsList($rule);
+            [$groupIds, $groupNames] = $this->normalizeGroups($rule);
 
             $clean[] = [
                 'name' => $name !== '' ? $name : $checks[0]['pattern'],
-                'group' => $gname,
-                'group_id' => $gid,
-                'os' => trim((string) ($rule['os'] ?? '*')) ?: '*',
+                'os_list' => $osList,
+                'group_ids' => $groupIds,
+                'group_names' => $groupNames,
+                // Afgeleide enkelvoudige velden voor backward-compat.
+                'os' => $osList === [] ? '*' : implode(', ', $osList),
+                'group' => $groupNames === [] ? '*' : implode(', ', $groupNames),
+                'group_id' => $groupIds[0] ?? 0,
                 'checks' => $checks,
             ];
         }
@@ -351,7 +418,6 @@ class ComplianceEngine
             return;
         }
 
-        $maps = $this->groupMaps();
         $changed = false;
 
         foreach ($data as $i => $rule) {
@@ -359,28 +425,26 @@ class ComplianceEngine
                 continue;
             }
 
-            $gname = trim((string) ($rule['group'] ?? '*')) ?: '*';
-            $hasId = isset($rule['group_id']) && $rule['group_id'] !== null && $rule['group_id'] !== '';
+            // Normaliseer naar de lijst-vorm (os_list / group_ids / group_names)
+            // met de actuele groepsnamen. Voor oudere regels vult dit de
+            // ontbrekende velden aan; bij hernoemde groepen ververst het de naam.
+            $osList = $this->normalizeOsList($rule);
+            [$groupIds, $groupNames] = $this->normalizeGroups($rule);
 
-            if ($gname === '*') {
-                if (! $hasId || (int) $rule['group_id'] !== 0) {
-                    $data[$i]['group_id'] = 0;
+            $normalized = [
+                'os_list' => $osList,
+                'group_ids' => $groupIds,
+                'group_names' => $groupNames,
+                'os' => $osList === [] ? '*' : implode(', ', $osList),
+                'group' => $groupNames === [] ? '*' : implode(', ', $groupNames),
+                'group_id' => $groupIds[0] ?? 0,
+            ];
+
+            foreach ($normalized as $key => $value) {
+                if (! array_key_exists($key, $rule) || $rule[$key] !== $value) {
+                    $data[$i][$key] = $value;
                     $changed = true;
                 }
-
-                continue;
-            }
-
-            if ($hasId && (int) $rule['group_id'] > 0) {
-                $current = $maps['byId'][(int) $rule['group_id']] ?? null;
-
-                if ($current !== null && $current !== $gname) {
-                    $data[$i]['group'] = $current;
-                    $changed = true;
-                }
-            } elseif (isset($maps['byName'][$gname])) {
-                $data[$i]['group_id'] = $maps['byName'][$gname];
-                $changed = true;
             }
         }
 
@@ -447,7 +511,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.11.3';
+    public const VERSION = '1.12.0';
 
     public function version(): string
     {
@@ -509,27 +573,28 @@ class ComplianceEngine
             $deviceGroupIds = $device->groups->pluck('id')->map(fn ($v) => (int) $v)->all();
 
             // Een regel telt mee als zowel het OS-filter als het groep-filter
-            // past ('*' / id 0 betekent telkens: geldt voor alles). Het groep-
-            // filter werkt op id (stabiel bij hernoemen) met terugval op naam
-            // voor oudere regels die nog geen id hebben. Regels zonder checks
-            // tellen niet mee.
+            // past. Beide zijn nu lijsten: een lege lijst betekent "alles".
+            // OS matcht als het device-OS in os_list zit (OR). Groepen matchen
+            // als het device in minstens één van de group_ids zit (OR, op id =
+            // rename-safe), met terugval op namen voor oudere regels. Regels
+            // zonder checks tellen niet mee.
             $matched = array_values(array_filter($rules, function ($rule) use ($device, $deviceGroups, $deviceGroupIds): bool {
                 if (empty($rule['checks'])) {
                     return false;
                 }
 
-                $ruleOs = $rule['os'] ?? '*';
-                $ruleGroup = $rule['group'] ?? '*';
-                $ruleGid = $rule['group_id'] ?? null;
+                $osList = $rule['os_list'] ?? [];
+                $groupIds = $rule['group_ids'] ?? [];
+                $groupNames = $rule['group_names'] ?? [];
 
-                $osOk = $ruleOs === '*' || $ruleOs === $device->os;
+                $osOk = $osList === [] || in_array($device->os, $osList, true);
 
-                if ($ruleGroup === '*' || $ruleGid === 0) {
+                if ($groupIds === [] && $groupNames === []) {
                     $groupOk = true;
-                } elseif ($ruleGid !== null && $ruleGid > 0) {
-                    $groupOk = in_array($ruleGid, $deviceGroupIds, true);
+                } elseif ($groupIds !== []) {
+                    $groupOk = array_intersect($groupIds, $deviceGroupIds) !== [];
                 } else {
-                    $groupOk = in_array($ruleGroup, $deviceGroups, true);
+                    $groupOk = array_intersect($groupNames, $deviceGroups) !== [];
                 }
 
                 return $osOk && $groupOk;

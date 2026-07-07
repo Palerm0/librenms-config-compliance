@@ -451,11 +451,25 @@
         if (!Array.isArray(rule.checks)) {
             rule.checks = [];
         }
+        // Zorg dat de lijst-velden bestaan (oudere regels hebben alleen os/group).
+        if (!Array.isArray(rule.os_list)) {
+            rule.os_list = (rule.os && rule.os !== '*')
+                ? rule.os.split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+                : [];
+        }
+        if (!Array.isArray(rule.group_names)) {
+            rule.group_names = (rule.group && rule.group !== '*')
+                ? rule.group.split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+                : [];
+        }
+        // Afgeleide tekst voor de sectie-indeling altijd opnieuw opbouwen.
+        rule.os = rule.os_list.length ? rule.os_list.join(', ') : '*';
+        rule.group = rule.group_names.length ? rule.group_names.join(', ') : '*';
     });
 
-    // Options for the dropdowns, '*' always first.
-    const groupOptions = ['*'].concat(@json($groups));
-    const osOptions = ['*'].concat(@json($osList));
+    // Keuzelijsten voor de multi-selects (de "alle"-optie voegen we los toe).
+    const groupChoices = @json($groups);
+    const osChoices = @json($osList);
 
     function escapeAttr(value) {
         return String(value || '').replace(/"/g, '&quot;');
@@ -481,6 +495,33 @@
         opts.forEach(function (option) {
             html += '<option value="' + escapeAttr(option) + '"' +
                 (option === value ? ' selected' : '') + '>' + escapeHtml(option) + '</option>';
+        });
+        return html + '</select>';
+    }
+
+    // Bouwt een <select multiple> voor OS of groep. 'selected' is een array
+    // met de gekozen waarden (namen). Een expliciete "alle"-optie bovenaan;
+    // die kiezen (of niets kiezen) betekent: geldt voor alles. Onbekende
+    // gekozen waarden (bijv. een verwijderde groep) houden we zichtbaar.
+    function buildMultiSelect(options, selected, ri, field) {
+        selected = Array.isArray(selected) ? selected : [];
+        const allLabel = (field === 'os') ? 'All OS' : 'All groups';
+        const isAll = selected.length === 0;
+
+        let opts = options.slice();
+        selected.forEach(function (s) {
+            if (opts.indexOf(s) === -1) { opts.push(s); }
+        });
+
+        let html = '<select multiple class="form-control input-sm"' +
+            ' style="height:auto; min-height:66px;"' +
+            ' title="Ctrl/Cmd-click to select more than one"' +
+            ' onchange="onRuleMultiChange(' + ri + ', \'' + field + '\', this)">';
+        html += '<option value="*"' + (isAll ? ' selected' : '') + '>' + allLabel + '</option>';
+        opts.forEach(function (option) {
+            const sel = selected.indexOf(option) !== -1;
+            html += '<option value="' + escapeAttr(option) + '"' +
+                (sel ? ' selected' : '') + '>' + escapeHtml(option) + '</option>';
         });
         return html + '</select>';
     }
@@ -623,9 +664,9 @@
                     ' value="' + escapeAttr(rule.name) + '"' +
                     ' onchange="rules[' + ri + '].name = this.value"></div>' +
                 '<div class="col-sm-3">' +
-                  buildSelect(groupOptions, rule.group, 'onRuleFieldChange(' + ri + ', \'group\', this.value)') + '</div>' +
+                  buildMultiSelect(groupChoices, rule.group_names, ri, 'group') + '</div>' +
                 '<div class="col-sm-3">' +
-                  buildSelect(osOptions, rule.os, 'onRuleFieldChange(' + ri + ', \'os\', this.value)') + '</div>' +
+                  buildMultiSelect(osChoices, rule.os_list, ri, 'os') + '</div>' +
                 '<div class="col-sm-2" style="text-align:right; padding-top:4px;">' +
                   '<span class="badge" title="Number of checks in this rule">' +
                     rule.checks.length + '</span> ' +
@@ -668,6 +709,26 @@
         if (field === 'os' || field === 'group') {
             renderRules();
         }
+    }
+
+    // Verwerkt een multi-select (OS of groep). Leest alle gekozen opties;
+    // '*' ("alle") is exclusief en betekent een lege lijst. Houdt de
+    // afgeleide tekst (os / group) bij voor de sectie-indeling.
+    function onRuleMultiChange(ri, field, sel) {
+        let vals = Array.prototype.slice.call(sel.selectedOptions).map(function (o) {
+            return o.value;
+        });
+        if (vals.indexOf('*') !== -1) {
+            vals = [];
+        }
+        if (field === 'os') {
+            rules[ri].os_list = vals;
+            rules[ri].os = vals.length ? vals.join(', ') : '*';
+        } else {
+            rules[ri].group_names = vals;
+            rules[ri].group = vals.length ? vals.join(', ') : '*';
+        }
+        renderRules();
     }
 
     function toggleOsSection(osValue) {
@@ -846,6 +907,8 @@
     function addRule() {
         rules.push({
             name: '',
+            os_list: [],
+            group_names: [],
             group: '*',
             os: '*',
             checks: [{ type: 'contains', pattern: '' }]
@@ -856,11 +919,20 @@
         renderRules();
     }
 
+    // Splitst een afgeleide sectie-tekst ("ios, iosxe" of "*") terug naar een
+    // array. '*' of leeg wordt een lege lijst (= alles).
+    function splitSectionKey(key) {
+        if (!key || key === '*') { return []; }
+        return key.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+
     // Voegt meteen een regel toe met een vast OS al ingevuld, vanuit de
     // "+"-knop in een OS-sectiekop. Scheelt het OS achteraf opzoeken.
     function addRuleForOs(os) {
         rules.push({
             name: '',
+            os_list: splitSectionKey(os),
+            group_names: [],
             group: '*',
             os: os,
             checks: [{ type: 'contains', pattern: '' }]
@@ -875,6 +947,8 @@
     function addRuleForOsGroup(os, group) {
         rules.push({
             name: '',
+            os_list: splitSectionKey(os),
+            group_names: splitSectionKey(group),
             group: group,
             os: os,
             checks: [{ type: 'contains', pattern: '' }]

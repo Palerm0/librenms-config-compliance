@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.12.0
+- **A rule can now target multiple operating systems and multiple device
+  groups at once.** The OS and Group fields in the rule editor are now
+  multi-selects: pick e.g. both `ios` and `iosxe` (which often share syntax)
+  in a single rule instead of duplicating it. A rule applies to a device if
+  the device's OS is any of the selected ones AND the device is in any of the
+  selected groups (an empty selection means "all"). Groups are still tracked
+  by ID, so renaming a group keeps the rule connected. Existing single-OS /
+  single-group rules are migrated automatically and keep working unchanged.
+  Requested by @sorano.
+
 ## v1.11.3
 - **Rules now track their device group by ID instead of name**, so renaming a
   LibreNMS group no longer silently disconnects the rules that use it. The

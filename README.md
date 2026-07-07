@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.11.3** &middot; License: **GPL-3.0-or-later**
+Version: **v1.12.0** &middot; License: **GPL-3.0-or-later**
 
 **New to the plugin?** Read the step-by-step
 [Getting started guide](docs/getting-started.md) — from zero to your first
@@ -111,13 +111,18 @@ Then reload the page.
    config. The editor validates the expression live and an invalid regex
    always fails the check.
 
-   A rule applies to a device when both **Group** and **OS** match. Tip: the
-   exact OS name (such as `ios`, `vrp`, `fortigate`) is shown in the **OS**
-   column of the results table after the first scan. In the editor the rules
-   are grouped into collapsible sections per OS, so a long list stays tidy;
-   rules with OS `*` sit in an "All OS" section at the bottom. A rule's group
-   is tracked by its LibreNMS group ID, so renaming a group keeps the rule
-   connected (the current name is shown automatically).
+   A rule applies to a device when both **Group** and **OS** match. Both the
+   OS and Group fields are multi-selects: pick one, several, or leave the
+   "All" option selected. A rule matches if the device's OS is **any** of the
+   selected ones and the device is in **any** of the selected groups, so you
+   can cover e.g. both `ios` and `iosxe` (which often share syntax) with one
+   rule instead of duplicating it. Tip: the exact OS name (such as `ios`,
+   `vrp`, `fortigate`) is shown in the **OS** column of the results table
+   after the first scan. In the editor the rules are grouped into collapsible
+   sections per OS selection, so a long list stays tidy; rules that apply to
+   all OSes sit in an "All OS" section at the bottom. Groups are tracked by
+   their LibreNMS group ID, so renaming a group keeps the rule connected (the
+   current name is shown automatically).
 
    In the results table two coloured badges show the state: *Failed checks*
    per device (green 0 / orange 1&ndash;5 / red more than 5) and, per failed
