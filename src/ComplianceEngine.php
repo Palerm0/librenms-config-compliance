@@ -518,7 +518,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.14.0';
+    public const VERSION = '1.14.1';
 
     public function version(): string
     {

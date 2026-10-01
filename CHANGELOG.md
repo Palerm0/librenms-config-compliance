@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.14.1
+- Re-release of v1.14.0 under a clean tag. The v1.14.0 tag had to be recreated
+  after it was briefly pushed pointing at the wrong commit, and Packagist's
+  re-tag protection kept serving the old reference. No code changes versus
+  v1.14.0 — this is purely to get the Oxidized device-groups support (below)
+  published cleanly.
+
 ## v1.14.0
 - **Oxidized device groups are now supported.** If your Oxidized setup groups
   nodes (so a node's `full_name` is `GroupName/node`), the plugin reads the
