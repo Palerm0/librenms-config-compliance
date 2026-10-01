@@ -56,6 +56,12 @@ If it isn't, set the Oxidized URL in the plugin settings to wherever your
 Oxidized API lives. The status line should turn green:
 `Oxidized reachable — N nodes`.
 
+If your Oxidized groups its nodes (so `nodes.json` shows a `group` and a
+`full_name` like `BlueGroup/10.11.11.11`), you don't need to do anything
+special — the plugin reads the group and fetches configs as
+`/node/fetch/<group>/<node>` automatically, falling back to the plain path for
+un-grouped nodes.
+
 ## 5. Create your first rule
 
 Open the **Compliance rules** panel on the plugin page. Rules are grouped

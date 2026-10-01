@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.14.0
+- **Oxidized device groups are now supported.** If your Oxidized setup groups
+  nodes (so a node's `full_name` is `GroupName/node`), the plugin reads the
+  group from Oxidized's `nodes.json` and fetches the config as
+  `/node/fetch/<group>/<node>` instead of just `/node/fetch/<node>`. It falls
+  back to the un-grouped path, so both grouped and flat Oxidized installs work
+  without any configuration. Devices that previously showed "no config"
+  because of grouping will now be evaluated. Requested by @FS-Fuj.
+
 ## v1.13.2
 - **Bugfix**: changing the device group(s) on an existing rule and saving had
   no effect — the page reloaded with the old groups. The editor sent the newly

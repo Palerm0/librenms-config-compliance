@@ -518,7 +518,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.13.2';
+    public const VERSION = '1.14.0';
 
     public function version(): string
     {
@@ -562,6 +562,11 @@ class ComplianceEngine
     {
         $rules = $this->rules();
         $oxidizedUrl = rtrim($this->settings()['oxidized_url'], '/');
+
+        // Eenmalig de Oxidized-groepen ophalen (voor gegroepeerde opstellingen
+        // die de groep in het fetch-pad verwachten). Leeg bij ongegroepeerde
+        // installaties of als nodes.json niet leesbaar is.
+        $oxidizedGroups = $this->oxidizedGroupMap($oxidizedUrl);
 
         $devices = Device::where('disabled', 0)
             ->with('groups')
@@ -626,7 +631,8 @@ class ComplianceEngine
                 continue;
             }
 
-            $config = $this->fetchConfig($oxidizedUrl, (string) $device->hostname);
+            $oxidizedGroup = $oxidizedGroups[$device->hostname] ?? null;
+            $config = $this->fetchConfig($oxidizedUrl, (string) $device->hostname, $oxidizedGroup);
 
             if ($config === null) {
                 $results[] = [
@@ -803,24 +809,99 @@ class ComplianceEngine
      * Haalt de actuele config van een device op bij Oxidized.
      * Geeft null terug als er geen config beschikbaar is.
      */
-    private function fetchConfig(string $oxidizedUrl, string $hostname): ?string
+    private function fetchConfig(string $oxidizedUrl, string $hostname, ?string $group = null): ?string
     {
         if ($oxidizedUrl === '' || $hostname === '') {
             return null;
         }
 
-        try {
-            $response = Http::timeout(15)
-                ->get($oxidizedUrl . '/node/fetch/' . rawurlencode($hostname));
+        // Bij een gegroepeerde Oxidized-opstelling zit de groep in het pad:
+        // /node/fetch/<groep>/<naam>. We proberen dat eerst (als we de groep
+        // kennen) en vallen terug op het pad zonder groep, zodat zowel
+        // gegroepeerde als ongegroepeerde installaties werken.
+        $paths = [];
 
-            if ($response->successful() && trim($response->body()) !== '') {
-                return $response->body();
+        if ($group !== null && $group !== '') {
+            $paths[] = '/node/fetch/' . rawurlencode($group) . '/' . rawurlencode($hostname);
+        }
+
+        $paths[] = '/node/fetch/' . rawurlencode($hostname);
+
+        foreach ($paths as $path) {
+            try {
+                $response = Http::timeout(15)->get($oxidizedUrl . $path);
+
+                if ($response->successful() && trim($response->body()) !== '') {
+                    return $response->body();
+                }
+            } catch (\Throwable $e) {
+                Log::warning('config-compliance: ophalen config mislukt voor ' . $hostname . ': ' . $e->getMessage());
             }
-        } catch (\Throwable $e) {
-            Log::warning('config-compliance: ophalen config mislukt voor ' . $hostname . ': ' . $e->getMessage());
         }
 
         return null;
+    }
+
+    /**
+     * Bouwt een tabel "device-identificatie => Oxidized-groep" op basis van
+     * nodes.json. Nodig omdat een gegroepeerde Oxidized-opstelling de groep in
+     * het fetch-pad verwacht (/node/fetch/<groep>/<naam>). Ongegroepeerde
+     * nodes komen niet in de tabel, dus die blijven zonder prefix werken.
+     * Mislukt het ophalen, dan is de tabel leeg en gedraagt alles zich als
+     * voorheen.
+     *
+     * @return array<string, string>  node-naam of ip => groepsnaam
+     */
+    private function oxidizedGroupMap(string $oxidizedUrl): array
+    {
+        if ($oxidizedUrl === '') {
+            return [];
+        }
+
+        try {
+            $response = Http::timeout(8)->get($oxidizedUrl . '/nodes.json');
+
+            if (! $response->successful()) {
+                return [];
+            }
+
+            $nodes = $response->json();
+        } catch (\Throwable $e) {
+            Log::warning('config-compliance: kon Oxidized-groepen niet lezen: ' . $e->getMessage());
+
+            return [];
+        }
+
+        if (! is_array($nodes)) {
+            return [];
+        }
+
+        $map = [];
+
+        foreach ($nodes as $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+
+            $group = trim((string) ($node['group'] ?? ''));
+
+            if ($group === '') {
+                continue;
+            }
+
+            $name = trim((string) ($node['name'] ?? ''));
+            $ip = trim((string) ($node['ip'] ?? ''));
+
+            if ($name !== '') {
+                $map[$name] = $group;
+            }
+
+            if ($ip !== '') {
+                $map[$ip] = $group;
+            }
+        }
+
+        return $map;
     }
 
     /**
