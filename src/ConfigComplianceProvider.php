@@ -15,6 +15,7 @@
 
 namespace Palerm0\LibrenmsConfigCompliance;
 
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use LibreNMS\Interfaces\Plugins\Hooks\MenuEntryHook;
 use LibreNMS\Interfaces\Plugins\Hooks\SettingsHook;
@@ -54,5 +55,13 @@ class ConfigComplianceProvider extends ServiceProvider
         }
 
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
+
+        // Dashboard-widget: core bepaalt of een widget-antwoord het
+        // instellingenformulier bevat door de view-naam te vergelijken met
+        // 'widgets.settings.'. Een namespaced naam faalt die test, dus we
+        // registreren de views-map óók als losse zoeklocatie, zodat
+        // 'widgets.config-compliance-summary' on-namespaced oplost. Core-views
+        // worden eerst doorzocht, dus dit kan niets van core overschrijven.
+        View::getFinder()->addLocation(__DIR__ . '/../resources/views');
     }
 }

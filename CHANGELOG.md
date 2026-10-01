@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.13.1
+- **Dashboard widget.** The plugin now registers a real LibreNMS dashboard
+  widget showing the compliance summary — overall score, device counts, rule
+  count and the time of the last scan. Add it via **Edit dashboard → Add
+  Widget → Config Compliance** (run `php artisan route:clear` once after
+  installing so LibreNMS picks it up). A bare summary page at
+  `plugin/config-compliance-page/summary` is also available for embedding via
+  an iframe, for setups whose LibreNMS allows raw HTML in a Notes widget. The
+  widget shows the last-scan time on the same row and links through to the
+  full Config Compliance page when clicked.
+
 ## v1.12.0
 - **A rule can now target multiple operating systems and multiple device
   groups at once.** The OS and Group fields in the rule editor are now

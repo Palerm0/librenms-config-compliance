@@ -167,7 +167,33 @@ Remember: alerts follow the **scan** schedule. With a daily 06:00 scan, a
 device that drifts during the day alerts the next morning. Want faster?
 Run the cron more often — the scan is light.
 
-## 9. Example rules to steal
+## 9. Put the summary on your dashboard
+
+The plugin ships a **dashboard widget** that shows the same badge bar you see
+at the top of the results page (overall score, device counts, rule count)
+plus the time of the last scan.
+
+1. Open any dashboard and click the pencil (**Edit dashboard**).
+2. Choose **Add Widget** and pick **Config Compliance** from the list.
+3. Drop it where you like and drag it to a full-width, short size — that suits
+   the badge bar best.
+
+That's it — the widget refreshes with the dashboard and always reflects the
+latest scan. The optional gear on the widget lets you set a custom title.
+
+> If **Config Compliance** does not appear in the Add Widget list right after
+> installing, the route cache is stale. Run
+> `sudo -u librenms php artisan route:clear` (LibreNMS discovers widgets by
+> scanning the route table) and reload.
+
+**Alternative (iframe).** The plugin also exposes a bare summary page at
+`plugin/config-compliance-page/summary`. If your LibreNMS allows raw HTML in a
+**Notes** widget you can embed it with
+`<iframe src="https://YOUR-LIBRENMS/plugin/config-compliance-page/summary" style="width:100%; height:60px; border:0;"></iframe>`.
+Many newer LibreNMS versions strip iframes from Notes for security, so the
+widget above is the recommended route.
+
+## 10. Example rules to steal
 
 | Goal                              | OS        | Check(s)                                          |
 |-----------------------------------|-----------|---------------------------------------------------|
@@ -182,7 +208,7 @@ Start small: one or two rules, verify the results match reality, then grow
 your rule set. A rule that's wrong is worse than no rule — it teaches
 people to ignore the compliance page.
 
-## 10. Where is my data?
+## 11. Where is my data?
 
 Everything lives in `/opt/librenms/storage/app/config-compliance/` (rules,
 results, settings) — it survives plugin updates and LibreNMS updates.

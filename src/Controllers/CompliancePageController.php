@@ -41,6 +41,18 @@ class CompliancePageController extends Controller
         ]);
     }
 
+    /**
+     * Kale samenvattingsweergave, bedoeld om via een <iframe> in een LibreNMS
+     * dashboard-widget (Notes) te tonen. Geeft alleen de scanbalk + de datum
+     * van de laatste scan terug, zonder de rest van de plugin-pagina.
+     */
+    public function summary(ComplianceEngine $engine): View
+    {
+        return view('config-compliance::summary-embed', [
+            'report' => $engine->latestReport() ?? ['summary' => [], 'generated_at' => null],
+        ]);
+    }
+
     public function scan(ComplianceEngine $engine): RedirectResponse
     {
         $report = $engine->run();
