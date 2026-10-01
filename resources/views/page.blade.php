@@ -727,6 +727,9 @@
         } else {
             rules[ri].group_names = vals;
             rules[ri].group = vals.length ? vals.join(', ') : '*';
+            // De oude id's horen niet meer bij deze nieuwe keuze; wissen zodat
+            // de server de id's opnieuw afleidt uit de gekozen namen.
+            rules[ri].group_ids = [];
         }
         renderRules();
     }

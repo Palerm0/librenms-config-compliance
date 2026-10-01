@@ -205,16 +205,22 @@ class ComplianceEngine
      * oude enkele 'group'. Namen worden waar mogelijk naar de actuele naam
      * (via id) omgezet. Lege lijsten betekenen "alle groepen".
      *
+     * Bij opslaan ($preferNames = true) is de namenkeuze uit de editor leidend:
+     * de bijbehorende id's leiden we dan opnieuw af uit de huidige namen. Zo
+     * overschrijven zojuist gewijzigde groepen niet per ongeluk met oude id's
+     * die nog in de regel meereizen. Bij laden ($preferNames = false) houden we
+     * id-voorrang aan, zodat een hernoemde groep gekoppeld blijft.
+     *
      * @param  array<string, mixed>  $rule
      * @return array{0: array<int, int>, 1: array<int, string>}
      */
-    private function normalizeGroups(array $rule): array
+    private function normalizeGroups(array $rule, bool $preferNames = false): array
     {
         $maps = $this->groupMaps();
         $ids = [];
         $names = [];
 
-        if (isset($rule['group_ids']) && is_array($rule['group_ids']) && $rule['group_ids'] !== []) {
+        if (! $preferNames && isset($rule['group_ids']) && is_array($rule['group_ids']) && $rule['group_ids'] !== []) {
             foreach ($rule['group_ids'] as $gid) {
                 $gid = (int) $gid;
                 if ($gid > 0) {
@@ -382,11 +388,12 @@ class ComplianceEngine
 
             $name = trim((string) ($rule['name'] ?? ''));
 
-            // De editor stuurt os_list (namen) en group_names. We normaliseren
-            // beide met dezelfde helpers als bij het lezen: OS als lijst, en
-            // groepen naar id's (rename-safe) plus de bijbehorende namen.
+            // De editor stuurt os_list (namen) en group_names. Bij opslaan is
+            // de namenkeuze leidend: we leiden de group_ids opnieuw af uit de
+            // gekozen namen, zodat een gewijzigde groepsselectie niet wordt
+            // overschreven door oude id's die nog in de regel meereizen.
             $osList = $this->normalizeOsList($rule);
-            [$groupIds, $groupNames] = $this->normalizeGroups($rule);
+            [$groupIds, $groupNames] = $this->normalizeGroups($rule, true);
 
             $clean[] = [
                 'name' => $name !== '' ? $name : $checks[0]['pattern'],
@@ -511,7 +518,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.13.1';
+    public const VERSION = '1.13.2';
 
     public function version(): string
     {

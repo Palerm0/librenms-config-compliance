@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.13.2
+- **Bugfix**: changing the device group(s) on an existing rule and saving had
+  no effect — the page reloaded with the old groups. The editor sent the newly
+  selected group names but also still carried the rule's old group IDs, and the
+  save path preferred those stale IDs. Saving now treats the selected names as
+  authoritative and re-derives the IDs from them (loading still resolves by ID
+  so renamed groups stay linked). Same fix applies to editing OS selections.
+  Thanks to @sorano and @FS-Fuj for reporting.
+
 ## v1.13.1
 - **Dashboard widget.** The plugin now registers a real LibreNMS dashboard
   widget showing the compliance summary — overall score, device counts, rule
