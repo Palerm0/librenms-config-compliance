@@ -84,7 +84,11 @@ class CompliancePageController extends Controller
 
     public function saveSettings(Request $request, ComplianceEngine $engine): RedirectResponse
     {
-        $engine->saveSettings((string) $request->input('oxidized_url', ''));
+        // Een niet-aangevinkte checkbox stuurt geen waarde mee, vandaar boolean().
+        $engine->saveSettings(
+            (string) $request->input('oxidized_url', ''),
+            $request->boolean('exclude_not_in_oxidized')
+        );
 
         return redirect()->route('config-compliance.index')->with('status', 'Settings saved.');
     }

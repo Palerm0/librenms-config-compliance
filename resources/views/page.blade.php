@@ -130,6 +130,9 @@
             </span>
             <span class="label label-warning" style="font-size:95%;">No config: {{ $report['summary']['no_config'] }}</span>
             <span class="label label-default" style="font-size:95%;">No rules: {{ $report['summary']['no_rules'] ?? 0 }}</span>
+            @if(($report['summary']['not_in_oxidized'] ?? 0) > 0)
+                <span class="label label-default" style="font-size:95%;" title="Devices Oxidized does not know; not counted toward the score.">Not in Oxidized: {{ $report['summary']['not_in_oxidized'] }}</span>
+            @endif
             <span class="label label-default" style="font-size:95%;">Rules: {{ $report['summary']['rules'] }}</span>
             </div>
 
@@ -426,6 +429,22 @@
                     <p class="text-muted" style="margin-top:8px;">
                         The same URL as under <em>Global Settings &raquo; External Settings
                         &raquo; Oxidized</em>, without a trailing slash.
+                    </p>
+
+                    <div class="checkbox" style="margin-top:14px;">
+                        <label for="cc-exclude-not-in-oxidized">
+                            <input type="checkbox" id="cc-exclude-not-in-oxidized"
+                                   name="exclude_not_in_oxidized" value="1"
+                                   {{ ($settings['exclude_not_in_oxidized'] ?? true) ? 'checked' : '' }}>
+                            Exclude devices not in Oxidized
+                        </label>
+                    </div>
+                    <p class="text-muted" style="margin-top:0;">
+                        When on (default), devices Oxidized doesn't know (ping-only
+                        or excluded) are left out of the scan and the counts
+                        entirely. When off, they're listed separately as
+                        <em>not in Oxidized</em> and don't count toward
+                        compliant/non-compliant.
                     </p>
                 </div>
                 <div class="modal-footer">

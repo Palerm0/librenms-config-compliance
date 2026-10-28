@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.15.0
+- **Devices that Oxidized doesn't know can be kept out of the scan.** A new
+  setting, **"Exclude devices not in Oxidized"** (on by default), leaves
+  ping-only or excluded devices out of the results and the counts entirely, so
+  they no longer show up as "no config" and drag down the stats. Turn the
+  setting off to instead list them separately as **"not in Oxidized"** — shown
+  but never counted toward compliant/non-compliant. As a safety net, nothing
+  is excluded when Oxidized's node list can't be read (so a temporarily
+  unreachable Oxidized never hides every device). Requested by @bonzo81.
+
 ## v1.14.1
 - Re-release of v1.14.0 under a clean tag. The v1.14.0 tag had to be recreated
   after it was briefly pushed pointing at the wrong commit, and Packagist's

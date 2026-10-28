@@ -62,6 +62,14 @@ special — the plugin reads the group and fetches configs as
 `/node/fetch/<group>/<node>` automatically, falling back to the plain path for
 un-grouped nodes.
 
+**Devices Oxidized doesn't back up** (ping-only, or deliberately excluded) are
+left out of the scan by default, so they don't show up as "no config" and skew
+your stats. This is the **"Exclude devices not in Oxidized"** setting (gear
+icon, on by default). Turn it off to list those devices separately as *not in
+Oxidized* instead — shown, but never counted toward compliant/non-compliant.
+If Oxidized's node list can't be read at scan time, nothing is excluded, so a
+brief Oxidized outage never hides your devices.
+
 ## 5. Create your first rule
 
 Open the **Compliance rules** panel on the plugin page. Rules are grouped

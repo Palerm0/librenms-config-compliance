@@ -12,7 +12,7 @@
 @php
     // Samenvatting van deze tab: tel de statussen, zodat we boven de
     // (ingeklapte) lijst meteen zien hoe het ervoor staat.
-    $sumC = 0; $sumN = 0; $sumNoCfg = 0; $sumNoRules = 0;
+    $sumC = 0; $sumN = 0; $sumNoCfg = 0; $sumNoRules = 0; $sumNotInOx = 0;
     foreach ($devices as $d) {
         $st = $d['status'] ?? '';
         if ($st === 'compliant') {
@@ -21,6 +21,8 @@
             $sumN++;
         } elseif ($st === 'no_config') {
             $sumNoCfg++;
+        } elseif ($st === 'not_in_oxidized') {
+            $sumNotInOx++;
         } else {
             $sumNoRules++;
         }
@@ -42,6 +44,9 @@
     @endif
     @if($sumNoRules > 0)
         <span class="label label-default">{{ $sumNoRules }} no rules</span>
+    @endif
+    @if($sumNotInOx > 0)
+        <span class="label label-default">{{ $sumNotInOx }} not in Oxidized</span>
     @endif
     <span class="text-muted" style="margin-left:auto; font-size:90%;">click to show / hide</span>
 </div>
@@ -98,6 +103,8 @@
                     <span class="label label-danger">Non-compliant</span>
                 @elseif($device['status'] === 'no_config')
                     <span class="label label-warning">No config</span>
+                @elseif($device['status'] === 'not_in_oxidized')
+                    <span class="label label-default" title="Oxidized does not know this device; not counted toward the score.">Not in Oxidized</span>
                 @else
                     <span class="label label-default">No rules</span>
                 @endif

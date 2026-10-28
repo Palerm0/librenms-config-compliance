@@ -11,6 +11,7 @@
     $nonCompliant = (int) ($summary['non_compliant'] ?? 0);
     $noConfig = (int) ($summary['no_config'] ?? 0);
     $noRules = (int) ($summary['no_rules'] ?? 0);
+    $notInOx = (int) ($summary['not_in_oxidized'] ?? 0);
     $rules = (int) ($summary['rules'] ?? 0);
 
     $evaluated = $compliant + $nonCompliant;
@@ -85,6 +86,9 @@
         <span class="cc-badge cc-danger">Non-compliant: {{ $nonCompliant }}</span>
         <span class="cc-badge cc-warning">No config: {{ $noConfig }}</span>
         <span class="cc-badge cc-default">No rules: {{ $noRules }}</span>
+        @if($notInOx > 0)
+            <span class="cc-badge cc-default">Not in Oxidized: {{ $notInOx }}</span>
+        @endif
         <span class="cc-badge cc-default">Rules: {{ $rules }}</span>
         @if($generatedAt)
             <span class="cc-scan">Last scan: {{ $generatedAt }}</span>

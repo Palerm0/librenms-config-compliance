@@ -39,7 +39,7 @@ class ComplianceEngine
     /* ---------- Instellingen ---------- */
 
     /**
-     * @return array{oxidized_url: string}
+     * @return array{oxidized_url: string, exclude_not_in_oxidized: bool}
      */
     public function settings(): array
     {
@@ -47,6 +47,9 @@ class ComplianceEngine
 
         return [
             'oxidized_url' => (string) ($data['oxidized_url'] ?? ''),
+            // Standaard aan: devices die Oxidized niet kent (ping-only of
+            // bewust uitgesloten) horen niet thuis in de compliance-cijfers.
+            'exclude_not_in_oxidized' => (bool) ($data['exclude_not_in_oxidized'] ?? true),
         ];
     }
 
@@ -62,10 +65,11 @@ class ComplianceEngine
         return @preg_match($regex, '') !== false;
     }
 
-    public function saveSettings(string $oxidizedUrl): void
+    public function saveSettings(string $oxidizedUrl, bool $excludeNotInOxidized = true): void
     {
         $this->writeJson('settings.json', [
             'oxidized_url' => trim($oxidizedUrl),
+            'exclude_not_in_oxidized' => $excludeNotInOxidized,
         ]);
 
         // De Oxidized-statuscheck wordt kort gecached; na het wijzigen van de
@@ -518,7 +522,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.14.1';
+    public const VERSION = '1.15.0';
 
     public function version(): string
     {
@@ -560,13 +564,25 @@ class ComplianceEngine
      */
     public function run(): array
     {
+        $settings = $this->settings();
         $rules = $this->rules();
-        $oxidizedUrl = rtrim($this->settings()['oxidized_url'], '/');
+        $oxidizedUrl = rtrim($settings['oxidized_url'], '/');
 
-        // Eenmalig de Oxidized-groepen ophalen (voor gegroepeerde opstellingen
-        // die de groep in het fetch-pad verwachten). Leeg bij ongegroepeerde
-        // installaties of als nodes.json niet leesbaar is.
-        $oxidizedGroups = $this->oxidizedGroupMap($oxidizedUrl);
+        // Eenmalig de Oxidized-nodes ophalen: 'groups' voor gegroepeerde
+        // opstellingen (groep in het fetch-pad) en 'known' om te bepalen welke
+        // devices Oxidized überhaupt kent.
+        $oxIndex = $this->oxidizedNodeIndex($oxidizedUrl);
+        $oxidizedGroups = $oxIndex['groups'];
+        $oxidizedKnown = $oxIndex['known'];
+
+        // Devices die Oxidized niet kent, kunnen geen config hebben. Met de
+        // setting aan (standaard) laten we ze volledig buiten de scan; met de
+        // setting uit tonen we ze apart ('not_in_oxidized'), zonder ze mee te
+        // tellen in compliant/non-compliant. VEILIGHEID: alleen toepassen als
+        // we de nodelijst daadwerkelijk hebben — anders ($oxidizedKnown leeg,
+        // bv. nodes.json onbereikbaar) zou álles "onbekend" lijken.
+        $excludeNotInOxidized = (bool) $settings['exclude_not_in_oxidized'];
+        $oxidizedKnownAvailable = $oxidizedKnown !== [];
 
         $devices = Device::where('disabled', 0)
             ->with('groups')
@@ -578,8 +594,42 @@ class ComplianceEngine
         $nonCompliant = 0;
         $noConfig = 0;
         $noRules = 0;
+        $notInOxidized = 0;
 
         foreach ($devices as $device) {
+            // Kent Oxidized dit device? Match op hostname én sysName tegen de
+            // set van node-namen en ip's. Alleen zinvol als we de lijst hebben.
+            if ($oxidizedKnownAvailable) {
+                $inOxidized = isset($oxidizedKnown[$device->hostname])
+                    || ($device->sysName !== null && isset($oxidizedKnown[$device->sysName]));
+
+                if (! $inOxidized) {
+                    if ($excludeNotInOxidized) {
+                        // Optie A: volledig overslaan — niet in resultaten, niet
+                        // in de tellingen. Schoonste cijfers.
+                        continue;
+                    }
+
+                    // Optie B: apart tonen, telt niet mee in de score.
+                    $deviceGroups = $device->groups->pluck('name')->all();
+                    $results[] = [
+                        'device_id' => $device->device_id,
+                        'hostname' => $device->hostname,
+                        'os' => $device->os,
+                        'down' => (int) $device->status === 0,
+                        'groups' => $deviceGroups,
+                        'status' => 'not_in_oxidized',
+                        'passed' => 0,
+                        'total' => 0,
+                        'checks_failed' => 0,
+                        'checks_total' => 0,
+                        'failed_rules' => [],
+                    ];
+                    $notInOxidized++;
+                    continue;
+                }
+            }
+
             // De groepen waar dit device lid van is, op naam én op id.
             $deviceGroups = $device->groups->pluck('name')->all();
             $deviceGroupIds = $device->groups->pluck('id')->map(fn ($v) => (int) $v)->all();
@@ -722,6 +772,7 @@ class ComplianceEngine
                 'non_compliant' => $nonCompliant,
                 'no_config' => $noConfig,
                 'no_rules' => $noRules,
+                'not_in_oxidized' => $notInOxidized,
                 'rules' => count($rules),
             ],
             'devices' => $results,
@@ -850,58 +901,66 @@ class ComplianceEngine
      * Mislukt het ophalen, dan is de tabel leeg en gedraagt alles zich als
      * voorheen.
      *
-     * @return array<string, string>  node-naam of ip => groepsnaam
+     * @return array{groups: array<string, string>, known: array<string, bool>}
+     *   groups: node-naam of ip => groepsnaam (alleen gegroepeerde nodes).
+     *   known:  elke node-naam en ip die Oxidized kent => true. Leeg als
+     *           nodes.json niet leesbaar is; dan weten we níét welke devices
+     *           Oxidized kent en mag er niets op worden uitgesloten.
      */
-    private function oxidizedGroupMap(string $oxidizedUrl): array
+    private function oxidizedNodeIndex(string $oxidizedUrl): array
     {
+        $empty = ['groups' => [], 'known' => []];
+
         if ($oxidizedUrl === '') {
-            return [];
+            return $empty;
         }
 
         try {
             $response = Http::timeout(8)->get($oxidizedUrl . '/nodes.json');
 
             if (! $response->successful()) {
-                return [];
+                return $empty;
             }
 
             $nodes = $response->json();
         } catch (\Throwable $e) {
-            Log::warning('config-compliance: kon Oxidized-groepen niet lezen: ' . $e->getMessage());
+            Log::warning('config-compliance: kon Oxidized-nodes niet lezen: ' . $e->getMessage());
 
-            return [];
+            return $empty;
         }
 
         if (! is_array($nodes)) {
-            return [];
+            return $empty;
         }
 
-        $map = [];
+        $groups = [];
+        $known = [];
 
         foreach ($nodes as $node) {
             if (! is_array($node)) {
                 continue;
             }
 
-            $group = trim((string) ($node['group'] ?? ''));
-
-            if ($group === '') {
-                continue;
-            }
-
             $name = trim((string) ($node['name'] ?? ''));
             $ip = trim((string) ($node['ip'] ?? ''));
+            $group = trim((string) ($node['group'] ?? ''));
 
             if ($name !== '') {
-                $map[$name] = $group;
+                $known[$name] = true;
+                if ($group !== '') {
+                    $groups[$name] = $group;
+                }
             }
 
             if ($ip !== '') {
-                $map[$ip] = $group;
+                $known[$ip] = true;
+                if ($group !== '') {
+                    $groups[$ip] = $group;
+                }
             }
         }
 
-        return $map;
+        return ['groups' => $groups, 'known' => $known];
     }
 
     /**

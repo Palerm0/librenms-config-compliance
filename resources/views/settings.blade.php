@@ -29,6 +29,18 @@
                     <code>http://127.0.0.1:8888</code>.
                 </p>
             </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="exclude_not_in_oxidized" value="1"
+                           {{ ($cc['exclude_not_in_oxidized'] ?? true) ? 'checked' : '' }}>
+                    Exclude devices not in Oxidized
+                </label>
+                <p class="help-block" style="margin-bottom: 0;">
+                    On (default): devices Oxidized doesn't know are left out of
+                    the scan entirely. Off: they're shown separately as
+                    <em>not in Oxidized</em> and don't count toward the score.
+                </p>
+            </div>
             <button type="submit" class="btn btn-primary btn-sm">Save</button>
             <a href="{{ route('config-compliance.index') }}" class="btn btn-default btn-sm">
                 Open plugin page
