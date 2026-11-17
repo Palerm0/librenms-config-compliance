@@ -39,18 +39,57 @@ class ComplianceEngine
     /* ---------- Instellingen ---------- */
 
     /**
-     * @return array{oxidized_url: string, exclude_not_in_oxidized: bool}
+     * @return array{oxidized_url: string, librenms_oxidized_url: string, exclude_not_in_oxidized: bool}
      */
     public function settings(): array
     {
         $data = $this->readJson('settings.json');
 
         return [
+            // De door de gebruiker ingevulde URL (mag leeg zijn).
             'oxidized_url' => (string) ($data['oxidized_url'] ?? ''),
+            // De URL uit LibreNMS' eigen config (oxidized.url), als fallback.
+            'librenms_oxidized_url' => $this->librenmsOxidizedUrl(),
             // Standaard aan: devices die Oxidized niet kent (ping-only of
             // bewust uitgesloten) horen niet thuis in de compliance-cijfers.
             'exclude_not_in_oxidized' => (bool) ($data['exclude_not_in_oxidized'] ?? true),
         ];
+    }
+
+    /**
+     * De Oxidized-URL die de plugin daadwerkelijk gebruikt: de eigen
+     * instelling als die is ingevuld, anders LibreNMS' oxidized.url. Zo hoeft
+     * de URL niet dubbel ingevoerd te worden en blijft hij in sync met
+     * LibreNMS, terwijl een expliciete eigen URL altijd voorrang heeft.
+     */
+    public function effectiveOxidizedUrl(): string
+    {
+        $settings = $this->settings();
+        $own = trim($settings['oxidized_url']);
+
+        return rtrim($own !== '' ? $own : $settings['librenms_oxidized_url'], '/');
+    }
+
+    /**
+     * Leest oxidized.url uit de LibreNMS-configuratie. Nieuwere versies
+     * gebruiken de LibrenmsConfig-facade, oudere de LibreNMS\Config-klasse;
+     * we proberen beide en vallen stil terug op '' als geen van beide werkt.
+     */
+    private function librenmsOxidizedUrl(): string
+    {
+        try {
+            if (class_exists(\App\Facades\LibrenmsConfig::class)) {
+                return trim((string) \App\Facades\LibrenmsConfig::get('oxidized.url', ''));
+            }
+
+            if (class_exists(\LibreNMS\Config::class)) {
+                return trim((string) \LibreNMS\Config::get('oxidized.url', ''));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('config-compliance: kon oxidized.url niet uit LibreNMS lezen: ' . $e->getMessage());
+        }
+
+        return '';
     }
 
     /**
@@ -95,7 +134,7 @@ class ComplianceEngine
     public function checkOxidized(): array
     {
         return Cache::remember(self::OXIDIZED_CACHE_KEY, 60, function (): array {
-            $url = rtrim($this->settings()['oxidized_url'], '/');
+            $url = $this->effectiveOxidizedUrl();
 
             if ($url === '') {
                 return ['state' => 'unconfigured', 'url' => '', 'node_count' => null];
@@ -522,7 +561,7 @@ class ComplianceEngine
      * Versienummer van de plugin. Eén plek om te updaten bij een release;
      * Packagist leidt zelf de versie af uit de bijbehorende git-tag.
      */
-    public const VERSION = '1.15.0';
+    public const VERSION = '1.16.0';
 
     public function version(): string
     {
@@ -566,7 +605,7 @@ class ComplianceEngine
     {
         $settings = $this->settings();
         $rules = $this->rules();
-        $oxidizedUrl = rtrim($settings['oxidized_url'], '/');
+        $oxidizedUrl = $this->effectiveOxidizedUrl();
 
         // Eenmalig de Oxidized-nodes ophalen: 'groups' voor gegroepeerde
         // opstellingen (groep in het fetch-pad) en 'known' om te bepalen welke

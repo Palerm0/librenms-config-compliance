@@ -424,11 +424,19 @@
                 <div class="modal-body">
                     <label for="cc-oxidized-url">Oxidized URL</label>
                     <input type="text" id="cc-oxidized-url" name="oxidized_url" class="form-control"
-                           placeholder="http://127.0.0.1:8888"
+                           placeholder="{{ ($settings['librenms_oxidized_url'] ?? '') !== '' ? $settings['librenms_oxidized_url'] : 'http://127.0.0.1:8888' }}"
                            value="{{ $settings['oxidized_url'] ?? '' }}">
                     <p class="text-muted" style="margin-top:8px;">
-                        The same URL as under <em>Global Settings &raquo; External Settings
-                        &raquo; Oxidized</em>, without a trailing slash.
+                        @if(($settings['librenms_oxidized_url'] ?? '') !== '')
+                            Leave empty to use the URL from LibreNMS
+                            (<code>{{ $settings['librenms_oxidized_url'] }}</code>, set under
+                            <em>Global Settings &raquo; External Settings &raquo; Oxidized</em>).
+                            Only fill this in to override it.
+                        @else
+                            No Oxidized URL found in the LibreNMS settings. Enter it here, or set it under
+                            <em>Global Settings &raquo; External Settings &raquo; Oxidized</em>
+                            and leave this empty.
+                        @endif
                     </p>
 
                     <div class="checkbox" style="margin-top:14px;">

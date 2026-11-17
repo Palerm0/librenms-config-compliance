@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The project follows
 semantic-ish versioning (`MAJOR.MINOR.PATCH`).
 
+## v1.16.0
+- **The Oxidized URL is now taken from LibreNMS automatically.** When the
+  plugin's own Oxidized URL setting is empty, it uses LibreNMS' configured
+  `oxidized.url` (Global Settings » External Settings » Oxidized), so on a
+  standard install there is nothing to configure. The detected URL is shown in
+  the settings form; filling in your own URL still overrides it. Because it is
+  read live rather than copied, the plugin follows any later change to the
+  LibreNMS setting. Requested by @sorano.
+
 ## v1.15.0
 - **Devices that Oxidized doesn't know can be kept out of the scan.** A new
   setting, **"Exclude devices not in Oxidized"** (on by default), leaves

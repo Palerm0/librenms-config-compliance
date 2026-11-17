@@ -9,7 +9,7 @@ the plugin does not connect to your devices and does not change anything.
 * **Own storage** in JSON files (`storage/app/config-compliance/`)
 * **LibreNMS style** &mdash; uses the standard LibreNMS layout
 
-Version: **v1.15.0** &middot; License: **GPL-3.0-or-later**
+Version: **v1.16.0** &middot; License: **GPL-3.0-or-later**
 
 **New to the plugin?** Read the step-by-step
 [Getting started guide](docs/getting-started.md) — from zero to your first
@@ -73,11 +73,13 @@ Then reload the page.
 
 ## Configuration
 
-1. Open the plugin page, click the **gear button** (top right) and fill in the
-   **Oxidized URL** (e.g. `http://127.0.0.1:8888`) &mdash; the same URL as under
-   *Global Settings &raquo; External Settings &raquo; Oxidized*. The page shows
-   a status line that confirms whether Oxidized is reachable, or warns if it is
-   not configured or cannot be reached.
+1. The plugin uses the Oxidized URL already configured in LibreNMS
+   (*Global Settings &raquo; External Settings &raquo; Oxidized*), so on a
+   standard install there is nothing to set. To use a different URL, click the
+   **gear button** (top right) and fill in **Oxidized URL** &mdash; your own
+   value overrides the LibreNMS one. The page shows a status line that
+   confirms whether Oxidized is reachable, or warns if it is not configured or
+   cannot be reached.
 
 2. Add your rules under **Compliance rules**. Per rule:
 

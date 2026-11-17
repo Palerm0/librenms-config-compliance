@@ -52,9 +52,11 @@ Reload LibreNMS — a **Config Compliance** item appears in the plugin menu.
 ## 4. Point it at Oxidized
 
 Open the plugin page. At the top it shows whether Oxidized is reachable.
-If it isn't, set the Oxidized URL in the plugin settings to wherever your
-Oxidized API lives. The status line should turn green:
-`Oxidized reachable — N nodes`.
+The plugin picks up the Oxidized URL you already configured in LibreNMS
+(*Global Settings » External Settings » Oxidized*), so usually this just
+works. If it doesn't, either set the URL there, or open the plugin settings
+(gear icon) and enter it — a URL entered in the plugin overrides the LibreNMS
+one. The status line should turn green: `Oxidized reachable — N nodes`.
 
 If your Oxidized groups its nodes (so `nodes.json` shows a `group` and a
 `full_name` like `BlueGroup/10.11.11.11`), you don't need to do anything

@@ -21,12 +21,17 @@
                        id="cc-settings-oxidized-url"
                        name="oxidized_url"
                        class="form-control"
-                       placeholder="http://127.0.0.1:8888"
+                       placeholder="{{ ($cc['librenms_oxidized_url'] ?? '') !== '' ? $cc['librenms_oxidized_url'] : 'http://127.0.0.1:8888' }}"
                        value="{{ $cc['oxidized_url'] ?? '' }}">
                 <p class="help-block" style="margin-bottom: 0;">
                     The REST API of your Oxidized instance, reachable from the
-                    LibreNMS server. Leave empty to use the default
-                    <code>http://127.0.0.1:8888</code>.
+                    LibreNMS server.
+                    @if(($cc['librenms_oxidized_url'] ?? '') !== '')
+                        Leave empty to use the URL from LibreNMS
+                        (<code>{{ $cc['librenms_oxidized_url'] }}</code>); fill it in only to override.
+                    @else
+                        No Oxidized URL is set in LibreNMS, so enter it here.
+                    @endif
                 </p>
             </div>
             <div class="checkbox">
